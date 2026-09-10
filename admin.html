@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rules &mdash; Whirlyball Rebels League</title>
-<meta name="description" content="Whirlyball Nationals rules used in Whirlyball Rebels League play.">
+<title>Admin &mdash; Whirlyball Rebels League</title>
+<meta name="description" content="Admin panel for Whirlyball Rebels League.">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,13 +22,13 @@
       <ul>
         <li><a href="index.html">Home</a></li>
 <li><a href="sign-up.html">Sign Up</a></li>
-<li><a href="rules.html" class="active">Rules</a></li>
+<li><a href="rules.html">Rules</a></li>
 <li><a href="fall-season-2026.html">Fall Season 2026</a></li>
 <li><a href="buy-scoops.html">Buy Scoops</a></li>
 <li><a href="contact-us.html">Contact Us</a></li>
 
         <li id="nav-polls-item" style="display:none"><a href="polls.html">Polls</a></li>
-        <li id="nav-admin-item" style="display:none"><a href="admin.html">Admin</a></li>
+        <li id="nav-admin-item" style="display:none"><a href="admin.html" class="active">Admin</a></li>
       </ul>
       <div class="nav-auth">
         <a href="auth.html" id="nav-signin-link" class="nav-auth-link">Sign In</a>
@@ -43,20 +43,13 @@
 
 <div class="page-hero">
   <div class="page-hero-inner">
-  <h1>Rules</h1>
-  <p>We use Whirlyball Nationals rules in our league play.</p>
+  <h1>Admin Panel</h1>
+  <p>Create polls and see who has responded.</p>
   </div>
 </div>
 
-<main>
-  <section class="block">
-    <h2>Nationals Rules</h2>
-    <p>Nationals rules are posted below &mdash; give them a read before your first game.</p>
-    <a class="file-link" href="https://drive.google.com/open?id=1oRlj7ZLP3xfX1FjwKgw9816RgAPTtai10dt04aWk1vw" target="_blank" rel="noopener">
-      <img src="https://www.gstatic.com/images/icons/material/product/1x/docs_32dp.png" alt="">
-      <span>WHIRLYBALL NATIONAL RULES &ndash; 2020</span>
-    </a>
-  </section>
+<main id="admin-content">
+  <p>Checking access&hellip;</p>
 </main>
 <footer class="site-footer">
   <div class="foot-inner">
@@ -73,5 +66,6 @@
 </footer>
 <script src="nav.js"></script>
 <script src="js/auth-nav.js"></script>
+<script src="js/admin.js"></script>
 </body>
 </html>

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rules &mdash; Whirlyball Rebels League</title>
-<meta name="description" content="Whirlyball Nationals rules used in Whirlyball Rebels League play.">
+<title>Sign In &mdash; Whirlyball Rebels League</title>
+<meta name="description" content="Sign in or create an account for Whirlyball Rebels League.">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,7 +22,7 @@
       <ul>
         <li><a href="index.html">Home</a></li>
 <li><a href="sign-up.html">Sign Up</a></li>
-<li><a href="rules.html" class="active">Rules</a></li>
+<li><a href="rules.html">Rules</a></li>
 <li><a href="fall-season-2026.html">Fall Season 2026</a></li>
 <li><a href="buy-scoops.html">Buy Scoops</a></li>
 <li><a href="contact-us.html">Contact Us</a></li>
@@ -43,20 +43,44 @@
 
 <div class="page-hero">
   <div class="page-hero-inner">
-  <h1>Rules</h1>
-  <p>We use Whirlyball Nationals rules in our league play.</p>
+  <h1>Sign In</h1>
+  <p>Sign in to vote in weekly practice polls, or create an account if you're new.</p>
   </div>
 </div>
 
 <main>
-  <section class="block">
-    <h2>Nationals Rules</h2>
-    <p>Nationals rules are posted below &mdash; give them a read before your first game.</p>
-    <a class="file-link" href="https://drive.google.com/open?id=1oRlj7ZLP3xfX1FjwKgw9816RgAPTtai10dt04aWk1vw" target="_blank" rel="noopener">
-      <img src="https://www.gstatic.com/images/icons/material/product/1x/docs_32dp.png" alt="">
-      <span>WHIRLYBALL NATIONAL RULES &ndash; 2020</span>
-    </a>
-  </section>
+  <div class="auth-tabs">
+    <button type="button" id="tab-signin" class="tab active">Sign In</button>
+    <button type="button" id="tab-signup" class="tab">Create Account</button>
+  </div>
+
+  <form id="signin-form" class="auth-form">
+    <label>Email
+      <input type="email" id="signin-email" required autocomplete="email">
+    </label>
+    <label>Password
+      <input type="password" id="signin-password" required autocomplete="current-password">
+    </label>
+    <button class="btn" type="submit">Sign In</button>
+    <p id="signin-error" class="form-error"></p>
+  </form>
+
+  <form id="signup-form" class="auth-form" style="display:none">
+    <label>Real Name
+      <input type="text" id="signup-realname" required autocomplete="name">
+    </label>
+    <label>Username
+      <input type="text" id="signup-username" required autocomplete="username">
+    </label>
+    <label>Email
+      <input type="email" id="signup-email" required autocomplete="email">
+    </label>
+    <label>Password
+      <input type="password" id="signup-password" required minlength="6" autocomplete="new-password">
+    </label>
+    <button class="btn" type="submit">Create Account</button>
+    <p id="signup-error" class="form-error"></p>
+  </form>
 </main>
 <footer class="site-footer">
   <div class="foot-inner">
@@ -73,5 +97,6 @@
 </footer>
 <script src="nav.js"></script>
 <script src="js/auth-nav.js"></script>
+<script src="js/auth.js"></script>
 </body>
 </html>

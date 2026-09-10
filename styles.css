@@ -315,3 +315,184 @@ footer.site-footer .foot-inner{
   display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem;
 }
 footer.site-footer a{ color:rgba(255,255,255,0.85); }
+
+/* ---------- Auth nav (Sign In / account box) ---------- */
+
+nav.primary-nav{
+  display:flex;
+  align-items:center;
+  gap:1.6rem;
+}
+nav.primary-nav ul{ align-items:center; }
+
+.nav-auth{ display:flex; align-items:center; }
+.nav-auth-link{
+  color:var(--navy);
+  text-decoration:none;
+  font-size:0.95rem;
+  font-weight:600;
+  background:none;
+  border:1px solid var(--line);
+  border-radius:4px;
+  padding:0.4rem 0.9rem;
+  cursor:pointer;
+  font-family:'Source Sans 3', sans-serif;
+}
+.nav-auth-link:hover{ border-color:var(--red); color:var(--red); }
+.nav-user-box{
+  display:none;
+  align-items:center;
+  gap:0.7rem;
+}
+#nav-username{
+  font-weight:600;
+  color:var(--navy);
+  font-size:0.95rem;
+}
+.nav-signout{ padding:0.35rem 0.8rem; }
+
+@media (max-width:760px){
+  nav.primary-nav{ flex-direction:column; align-items:flex-start; gap:0.5rem; }
+  .nav-auth{ padding:0.7rem 0 0.3rem; width:100%; }
+  .nav-user-box{ width:100%; justify-content:space-between; }
+}
+
+/* ---------- Auth forms ---------- */
+
+.auth-tabs{
+  display:flex;
+  gap:0.5rem;
+  margin-bottom:1.6rem;
+  border-bottom:1px solid var(--line);
+}
+.auth-tabs .tab{
+  background:none;
+  border:none;
+  font-family:'Playfair Display', Georgia, serif;
+  font-size:1.1rem;
+  font-weight:700;
+  color:var(--ink-soft);
+  padding:0.6rem 0.2rem 0.8rem;
+  margin-right:1.2rem;
+  cursor:pointer;
+  border-bottom:3px solid transparent;
+}
+.auth-tabs .tab.active{ color:var(--navy); border-bottom-color:var(--red); }
+
+.auth-form{
+  display:flex;
+  flex-direction:column;
+  gap:1rem;
+  max-width:420px;
+}
+.auth-form label{
+  display:flex;
+  flex-direction:column;
+  gap:0.4rem;
+  font-weight:600;
+  color:var(--navy);
+  font-size:0.95rem;
+}
+.auth-form input,
+.auth-form textarea,
+.auth-form select{
+  font-family:'Source Sans 3', sans-serif;
+  font-size:1rem;
+  padding:0.6rem 0.7rem;
+  border:1px solid var(--line);
+  border-radius:4px;
+  color:var(--ink);
+  background:#fff;
+}
+.auth-form input:focus,
+.auth-form textarea:focus,
+.auth-form select:focus{
+  outline:none;
+  border-color:var(--red);
+}
+.auth-form .btn{ align-self:flex-start; }
+.form-error{
+  color:var(--red);
+  font-size:0.92rem;
+  margin:0;
+  min-height:1.2em;
+}
+
+.btn-small{ padding:0.45rem 0.9rem; font-size:0.9rem; }
+
+/* ---------- Polls ---------- */
+
+.poll-card h2{ font-size:1.3rem; margin-bottom:0.2rem; }
+.poll-date{
+  font-weight:600;
+  color:var(--ink-soft);
+  margin-bottom:0.6rem;
+  font-size:0.95rem;
+}
+.poll-status{
+  display:inline-block;
+  font-size:0.82rem;
+  font-weight:600;
+  padding:0.25rem 0.7rem;
+  border-radius:999px;
+  margin-bottom:0.8rem;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+}
+.poll-status.open{ background:rgba(217,58,58,0.12); color:var(--red); }
+.poll-status.booked{ background:rgba(92,36,48,0.15); color:var(--maroon); }
+.poll-status.cancelled{ background:rgba(75,85,99,0.15); color:var(--ink-soft); }
+
+.vote-buttons{
+  display:flex;
+  gap:0.6rem;
+  flex-wrap:wrap;
+  margin-top:0.8rem;
+}
+.vote-btn{
+  font-family:'Source Sans 3', sans-serif;
+  font-weight:600;
+  font-size:0.92rem;
+  padding:0.55rem 1.1rem;
+  border-radius:4px;
+  border:1.5px solid var(--line);
+  background:#fff;
+  color:var(--ink-soft);
+  cursor:pointer;
+}
+.vote-btn:hover{ border-color:var(--navy); }
+.vote-btn.selected.vote-going{ background:#2E7D4F; border-color:#2E7D4F; color:#fff; }
+.vote-btn.selected.vote-maybe{ background:#C7891C; border-color:#C7891C; color:#fff; }
+.vote-btn.selected.vote-not-going{ background:var(--red); border-color:var(--red); color:#fff; }
+
+/* ---------- Admin panel ---------- */
+
+.admin-poll-card h3{ font-size:1.2rem; margin-bottom:0.2rem; font-family:'Playfair Display', Georgia, serif; color:var(--navy); }
+.admin-status-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:1rem;
+  align-items:flex-end;
+  margin:1rem 0;
+  padding:1rem;
+  background:var(--paper);
+  border-radius:4px;
+}
+.admin-status-row label{
+  display:flex;
+  flex-direction:column;
+  gap:0.3rem;
+  font-weight:600;
+  font-size:0.88rem;
+  color:var(--navy);
+}
+.admin-status-row select,
+.admin-status-row input{
+  font-family:'Source Sans 3', sans-serif;
+  padding:0.45rem 0.6rem;
+  border:1px solid var(--line);
+  border-radius:4px;
+}
+.save-msg{ margin:0; font-size:0.85rem; align-self:center; }
+.vote-breakdown p{ margin-bottom:0.5rem; font-size:0.95rem; }
+.vote-breakdown strong{ color:var(--navy); }

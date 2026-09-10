@@ -7,6 +7,8 @@
 <meta name="description" content="Register for the next Whirlyball Rebels season in the Chicago area.">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="assets/logo.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
 </head>
 <body>
 <header class="site-header">
@@ -25,7 +27,16 @@
 <li><a href="buy-scoops.html">Buy Scoops</a></li>
 <li><a href="contact-us.html">Contact Us</a></li>
 
+        <li id="nav-polls-item" style="display:none"><a href="polls.html">Polls</a></li>
+        <li id="nav-admin-item" style="display:none"><a href="admin.html">Admin</a></li>
       </ul>
+      <div class="nav-auth">
+        <a href="auth.html" id="nav-signin-link" class="nav-auth-link">Sign In</a>
+        <div id="nav-user-box" class="nav-user-box" style="display:none">
+          <span id="nav-username"></span>
+          <button type="button" id="nav-signout-btn" class="nav-auth-link nav-signout">Sign Out</button>
+        </div>
+      </div>
     </nav>
   </div>
 </header>
@@ -68,5 +79,6 @@
   </div>
 </footer>
 <script src="nav.js"></script>
+<script src="js/auth-nav.js"></script>
 </body>
 </html>
