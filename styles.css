@@ -6,7 +6,6 @@
   --maroon:#5C2430;
   --maroon-dark:#4A1D27;
   --red:#D93A3A;
-  --sky:#5B9BD5;
   --paper:#FAF8F5;
   --ink:#1B2A44;
   --ink-soft:#4B5563;
@@ -152,14 +151,21 @@ nav.primary-nav a.active{
   letter-spacing:0.02em;
 }
 
-/* Solid hero for interior pages (no photo) */
+/* Photo hero for interior pages, same image as home, shorter */
 .page-hero{
-  background:var(--navy);
+  position:relative;
   color:#fff;
-  padding:3.2rem 1.5rem 2.6rem;
+  padding:5rem 1.5rem 3.2rem;
+  background:
+    linear-gradient(180deg, rgba(18,30,51,0.55) 0%, rgba(18,30,51,0.72) 100%),
+    url('assets/hero.jpg') center 30% / cover no-repeat;
+  min-height:260px;
+  display:flex;
+  align-items:flex-end;
 }
-.page-hero h1{ color:#fff; font-size:clamp(2rem, 5vw, 2.8rem); margin-bottom:0.5rem;}
-.page-hero p{ color:rgba(255,255,255,0.82); max-width:60ch; margin:0; }
+.page-hero-inner{ max-width:var(--max); margin:0 auto; width:100%; }
+.page-hero h1{ color:#fff; font-size:clamp(2.2rem, 6vw, 3.4rem); margin-bottom:0.4rem; text-align:center;}
+.page-hero p{ color:rgba(255,255,255,0.88); max-width:60ch; margin:0 auto; text-align:center; }
 
 /* ---------- Maroon band (About Us style section) ---------- */
 
