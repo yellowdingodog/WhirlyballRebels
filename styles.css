@@ -547,3 +547,173 @@ footer.site-footer a{ color:rgba(255,255,255,0.85); }
   gap:0.4rem;
 }
 .location-field .location-other{ margin-top:0; }
+
+/* ---------- Admin subnav ---------- */
+
+.admin-subnav{
+  display:flex;
+  gap:1.5rem;
+  margin-bottom:2rem;
+  border-bottom:1px solid var(--line);
+  padding-bottom:0.8rem;
+}
+.admin-subnav a{
+  color:var(--ink-soft);
+  text-decoration:none;
+  font-weight:600;
+  font-size:0.95rem;
+  padding-bottom:0.5rem;
+  border-bottom:2px solid transparent;
+}
+.admin-subnav a:hover{ color:var(--ink); }
+.admin-subnav a.active{ color:var(--red); border-bottom-color:var(--red); }
+
+/* ---------- Standings table ---------- */
+
+.standings-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:0.95rem;
+}
+.standings-table th,
+.standings-table td{
+  text-align:left;
+  padding:0.55rem 0.7rem;
+  border-bottom:1px solid var(--line);
+}
+.standings-table th{
+  font-family:'Playfair Display', Georgia, serif;
+  color:var(--ink);
+  font-size:0.9rem;
+}
+.standings-table tr:first-child td{ font-weight:700; color:var(--maroon); }
+
+/* ---------- Schedule display ---------- */
+
+.schedule-week{ margin-bottom:1.6rem; }
+.schedule-week h3{ font-size:1.15rem; margin-bottom:0.6rem; }
+.schedule-games{ display:flex; flex-direction:column; gap:0.5rem; }
+.game-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0.7rem;
+  padding:0.6rem 0.9rem;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:4px;
+  font-size:0.95rem;
+}
+.game-team{ font-weight:600; color:var(--ink); min-width:6rem; }
+.game-score{
+  font-family:'Playfair Display', Georgia, serif;
+  font-weight:700;
+  color:var(--maroon);
+}
+.game-score-tbd{ color:var(--ink-soft); font-weight:500; font-family:'Source Sans 3', sans-serif; }
+.game-ref{ color:var(--ink-soft); font-size:0.85rem; margin-left:auto; }
+
+/* ---------- League admin: teams ---------- */
+
+.league-teams-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:0.8rem;
+}
+.league-team-row{ display:flex; gap:0.5rem; }
+.league-team-row input{
+  flex:1;
+  padding:0.5rem 0.6rem;
+  border:1px solid var(--line);
+  border-radius:4px;
+  font-family:'Source Sans 3', sans-serif;
+}
+
+/* ---------- League admin: roster ---------- */
+
+.league-player-form{
+  flex-direction:row;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  max-width:none;
+  gap:0.8rem;
+  margin-bottom:1.5rem;
+  padding-bottom:1.2rem;
+  border-bottom:1px solid var(--line);
+}
+.league-player-form label{ min-width:140px; }
+.checkbox-label{
+  flex-direction:row !important;
+  align-items:center;
+  gap:0.4rem !important;
+}
+
+.roster-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:0.9rem;
+}
+.roster-table th{
+  text-align:left;
+  padding:0.5rem 0.5rem;
+  font-family:'Playfair Display', Georgia, serif;
+  color:var(--ink);
+  border-bottom:1px solid var(--line);
+}
+.roster-table td{
+  padding:0.4rem 0.5rem;
+  border-bottom:1px solid var(--line);
+  vertical-align:middle;
+}
+.roster-table input[type="text"],
+.roster-table input[type="email"],
+.roster-table input[type="tel"],
+.roster-table select{
+  width:100%;
+  padding:0.4rem 0.5rem;
+  border:1px solid var(--line);
+  border-radius:4px;
+  font-family:'Source Sans 3', sans-serif;
+  font-size:0.9rem;
+}
+.paid-cell{ text-align:center; }
+
+/* ---------- League admin: schedule/scores ---------- */
+
+.league-game-form{
+  flex-direction:row;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  max-width:none;
+  gap:0.8rem;
+  margin-bottom:1.5rem;
+  padding-bottom:1.2rem;
+  border-bottom:1px solid var(--line);
+}
+.league-game-form label{ min-width:130px; }
+
+.league-week-heading{
+  font-size:1.15rem;
+  margin:1.4rem 0 0.6rem;
+}
+.league-game-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0.5rem;
+  padding:0.6rem 0.7rem;
+  background:var(--paper);
+  border-radius:4px;
+  margin-bottom:0.5rem;
+}
+.league-game-row select,
+.league-game-row input{
+  padding:0.4rem 0.5rem;
+  border:1px solid var(--line);
+  border-radius:4px;
+  font-family:'Source Sans 3', sans-serif;
+  font-size:0.88rem;
+}
+.league-game-row .game-red-score,
+.league-game-row .game-black-score{ width:4.5rem; }
+.league-game-row .vs-label{ color:var(--ink-soft); font-weight:600; }
