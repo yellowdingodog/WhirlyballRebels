@@ -259,8 +259,7 @@ function renderGamesSection() {
       <label>Date <input type="date" id="new-game-date"></label>
       <label>Red Team <select id="new-game-red">${teamOptionsHtml(null)}</select></label>
       <label>Black Team <select id="new-game-black">${teamOptionsHtml(null)}</select></label>
-      <label>Ref Team <select id="new-game-refteam"><option value="">None</option>${teamOptionsHtml(null)}</select></label>
-      <label>Ref Name (optional) <input type="text" id="new-game-refname"></label>
+      <label>Ref (optional) <input type="text" id="new-game-refname"></label>
       <button class="btn" type="submit">Add Game</button>
       <p id="add-game-error" class="form-error"></p>
     </form>
@@ -281,8 +280,7 @@ function renderGamesSection() {
           <span class="vs-label">vs</span>
           <select class="game-black">${teamOptionsHtml(g.black_team_id)}</select>
           <input type="number" class="game-black-score" placeholder="Score" value="${g.black_score != null ? g.black_score : ''}">
-          <select class="game-refteam"><option value="">No ref</option>${teamOptionsHtml(g.ref_team_id)}</select>
-          <input type="text" class="game-refname" placeholder="Ref name" value="${escapeHtml(g.ref_name || '')}">
+          <input type="text" class="game-refname" placeholder="Ref" value="${escapeHtml(g.ref_name || '')}">
           <input type="date" class="game-date" value="${g.game_date || ''}">
           <button type="button" class="btn btn-small save-game" data-game="${g.id}">Save</button>
           <button type="button" class="link-button delete-game" data-game="${g.id}">Delete</button>
@@ -303,7 +301,6 @@ function renderGamesSection() {
     const game_date = document.getElementById('new-game-date').value || null;
     const red_team_id = document.getElementById('new-game-red').value;
     const black_team_id = document.getElementById('new-game-black').value;
-    const ref_team_id = document.getElementById('new-game-refteam').value || null;
     const ref_name = document.getElementById('new-game-refname').value.trim() || null;
 
     if (!red_team_id || !black_team_id) {
@@ -324,7 +321,6 @@ function renderGamesSection() {
       game_date,
       red_team_id,
       black_team_id,
-      ref_team_id,
       ref_name,
     });
 
@@ -351,7 +347,6 @@ function renderGamesSection() {
         black_team_id: row.querySelector('.game-black').value,
         red_score: redScoreVal === '' ? null : parseInt(redScoreVal, 10),
         black_score: blackScoreVal === '' ? null : parseInt(blackScoreVal, 10),
-        ref_team_id: row.querySelector('.game-refteam').value || null,
         ref_name: row.querySelector('.game-refname').value.trim() || null,
         game_date: row.querySelector('.game-date').value || null,
       };

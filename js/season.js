@@ -57,7 +57,16 @@ function renderStandings(rows) {
   let html = `
     <table class="standings-table">
       <thead>
-        <tr><th>Rank</th><th>Team</th><th>GP</th><th>W</th><th>L</th><th>T</th><th>Win%</th><th>GB</th></tr>
+        <tr>
+          <th>Rank</th>
+          <th>Team</th>
+          <th>Games Played</th>
+          <th>Wins</th>
+          <th>Losses</th>
+          <th>Ties</th>
+          <th>Win %</th>
+          <th>Games Back</th>
+        </tr>
       </thead>
       <tbody>
   `;
@@ -98,33 +107,36 @@ function renderSchedule(games, teamMap) {
   weekNumbers.forEach(wk => {
     const weekGames = byWeek[wk].sort((a, b) => a.game_order - b.game_order);
     const dateLabel = weekGames[0].game_date ? formatGameDate(weekGames[0].game_date) : '';
-    html += `<div class="schedule-week">
-      <h3>Week ${wk}${dateLabel ? ' &middot; ' + dateLabel : ''}</h3>
-      <div class="schedule-games">`;
+
+    html += `
+      <div class="schedule-week">
+        <h3>Week ${wk}${dateLabel ? ' &middot; ' + dateLabel : ''}</h3>
+        <table class="schedule-table">
+          <thead>
+            <tr><th>Red</th><th>Score</th><th>Black</th><th>Ref</th></tr>
+          </thead>
+          <tbody>
+    `;
 
     weekGames.forEach(g => {
       const redName = teamMap[g.red_team_id] ? teamMap[g.red_team_id].name : 'TBD';
       const blackName = teamMap[g.black_team_id] ? teamMap[g.black_team_id].name : 'TBD';
       const played = g.red_score != null && g.black_score != null;
-      const scoreHtml = played
-        ? `<span class="game-score">${g.red_score} &ndash; ${g.black_score}</span>`
-        : `<span class="game-score game-score-tbd">vs</span>`;
-      const refTeam = g.ref_team_id && teamMap[g.ref_team_id] ? teamMap[g.ref_team_id].name : null;
-      const refHtml = refTeam
-        ? `<span class="game-ref">Ref: ${escapeHtml(refTeam)}${g.ref_name ? ' (' + escapeHtml(g.ref_name) + ')' : ''}</span>`
-        : '';
+      const scoreCell = played
+        ? `${g.red_score} &ndash; ${g.black_score}`
+        : `<span class="game-score-tbd">vs</span>`;
 
       html += `
-        <div class="game-row">
-          <span class="game-team">${escapeHtml(redName)}</span>
-          ${scoreHtml}
-          <span class="game-team">${escapeHtml(blackName)}</span>
-          ${refHtml}
-        </div>
+        <tr>
+          <td>${escapeHtml(redName)}</td>
+          <td class="score-cell">${scoreCell}</td>
+          <td>${escapeHtml(blackName)}</td>
+          <td>${g.ref_name ? escapeHtml(g.ref_name) : '&mdash;'}</td>
+        </tr>
       `;
     });
 
-    html += `</div></div>`;
+    html += `</tbody></table></div>`;
   });
 
   container.innerHTML = html;
