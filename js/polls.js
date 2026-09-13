@@ -47,7 +47,12 @@ function splitUpcomingPast(polls) {
   return { upcoming, past };
 }
 
-function renderPollCard(poll, myVoteMap) {
+function nameFor(id, profileMap) {
+  const p = profileMap[id];
+  return p ? p.real_name : 'Unknown';
+}
+
+function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   let statusHtml;
   if (poll.status === 'booked') {
     const timeStr = formatTime(poll.practice_time);
@@ -61,6 +66,15 @@ function renderPollCard(poll, myVoteMap) {
   const current = myVoteMap[poll.id];
   const locationLabel = poll.location || 'Any';
 
+  const pollVotes = votes.filter(v => v.poll_id === poll.id);
+  const votedIds = new Set(pollVotes.map(v => v.user_id));
+  const notVoted = profiles.filter(p => !votedIds.has(p.id));
+
+  const goingList = pollVotes.filter(v => v.vote === 'going').map(v => nameFor(v.user_id, profileMap));
+  const maybeList = pollVotes.filter(v => v.vote === 'maybe').map(v => nameFor(v.user_id, profileMap));
+  const notGoingList = pollVotes.filter(v => v.vote === 'not_going').map(v => nameFor(v.user_id, profileMap));
+  const notVotedList = notVoted.map(p => p.real_name);
+
   const card = document.createElement('section');
   card.className = 'card poll-card';
   card.innerHTML = `
@@ -72,6 +86,12 @@ function renderPollCard(poll, myVoteMap) {
       <button type="button" class="vote-btn vote-going ${current === 'going' ? 'selected' : ''}" data-vote="going">Going</button>
       <button type="button" class="vote-btn vote-maybe ${current === 'maybe' ? 'selected' : ''}" data-vote="maybe">Maybe</button>
       <button type="button" class="vote-btn vote-not-going ${current === 'not_going' ? 'selected' : ''}" data-vote="not_going">Not Going</button>
+    </div>
+    <div class="vote-breakdown">
+      <p><strong>Going (${goingList.length}):</strong> ${goingList.join(', ') || '&mdash;'}</p>
+      <p><strong>Maybe (${maybeList.length}):</strong> ${maybeList.join(', ') || '&mdash;'}</p>
+      <p><strong>Not going (${notGoingList.length}):</strong> ${notGoingList.join(', ') || '&mdash;'}</p>
+      <p><strong>Haven't voted (${notVotedList.length}):</strong> ${notVotedList.join(', ') || '&mdash;'}</p>
     </div>
   `;
   return card;
@@ -86,9 +106,11 @@ async function loadPolls() {
     return;
   }
 
-  const { data: polls, error } = await window.sb
-    .from('polls')
-    .select('*');
+  const [{ data: polls, error }, { data: profiles }, { data: votes }] = await Promise.all([
+    window.sb.from('polls').select('*'),
+    window.sb.from('profiles').select('id, real_name'),
+    window.sb.from('poll_votes').select('poll_id, user_id, vote'),
+  ]);
 
   if (error) {
     main.innerHTML = '<p>Could not load polls right now. Please try again later.</p>';
@@ -101,13 +123,11 @@ async function loadPolls() {
     return;
   }
 
-  const { data: myVotes } = await window.sb
-    .from('poll_votes')
-    .select('poll_id, vote')
-    .eq('user_id', session.user.id);
-
   const myVoteMap = {};
-  (myVotes || []).forEach(v => { myVoteMap[v.poll_id] = v.vote; });
+  (votes || []).filter(v => v.user_id === session.user.id).forEach(v => { myVoteMap[v.poll_id] = v.vote; });
+
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
   const { upcoming, past } = splitUpcomingPast(polls);
 
@@ -123,7 +143,7 @@ async function loadPolls() {
     p.textContent = 'No upcoming practices posted yet.';
     main.appendChild(p);
   } else {
-    upcoming.forEach(poll => main.appendChild(renderPollCard(poll, myVoteMap)));
+    upcoming.forEach(poll => main.appendChild(renderPollCard(poll, myVoteMap, votes || [], profiles || [], profileMap)));
   }
 
   if (past.length) {
@@ -131,7 +151,7 @@ async function loadPolls() {
     pastHeading.className = 'polls-section-heading polls-section-past';
     pastHeading.textContent = 'Past Practices';
     main.appendChild(pastHeading);
-    past.forEach(poll => main.appendChild(renderPollCard(poll, myVoteMap)));
+    past.forEach(poll => main.appendChild(renderPollCard(poll, myVoteMap, votes || [], profiles || [], profileMap)));
   }
 
   main.querySelectorAll('.vote-buttons').forEach(group => {
@@ -150,6 +170,8 @@ async function loadPolls() {
         if (error) {
           alert('Could not save your vote: ' + error.message);
           console.error(error);
+        } else {
+          loadPolls();
         }
       });
     });

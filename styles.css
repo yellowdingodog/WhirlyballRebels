@@ -421,6 +421,21 @@ footer.site-footer a{ color:rgba(255,255,255,0.85); }
   border-color:var(--red);
 }
 .auth-form .btn{ align-self:flex-start; }
+.link-button{
+  background:none;
+  border:none;
+  color:var(--red);
+  font-family:'Source Sans 3', sans-serif;
+  font-size:0.9rem;
+  font-weight:600;
+  padding:0;
+  text-align:left;
+  cursor:pointer;
+  align-self:flex-start;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.link-button:hover{ color:var(--maroon); }
 .form-error{
   color:var(--red);
   font-size:0.92rem;

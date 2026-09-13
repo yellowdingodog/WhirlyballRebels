@@ -9,6 +9,34 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('tab-signin').addEventListener('click', () => switchAuthTab('signin'));
   document.getElementById('tab-signup').addEventListener('click', () => switchAuthTab('signup'));
 
+  document.getElementById('forgot-password-link').addEventListener('click', () => {
+    document.getElementById('signin-form').style.display = 'none';
+    document.getElementById('forgot-form').style.display = 'block';
+  });
+
+  document.getElementById('back-to-signin-link').addEventListener('click', () => {
+    document.getElementById('forgot-form').style.display = 'none';
+    document.getElementById('signin-form').style.display = 'block';
+  });
+
+  document.getElementById('forgot-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('forgot-error');
+    errorEl.style.color = 'var(--red)';
+    errorEl.textContent = '';
+
+    const email = document.getElementById('forgot-email').value.trim();
+    const redirectTo = window.location.origin + window.location.pathname.replace(/auth\.html$/, '') + 'reset-password.html';
+
+    const { error } = await window.sb.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) {
+      errorEl.textContent = error.message;
+      return;
+    }
+    errorEl.style.color = 'var(--ink-soft)';
+    errorEl.textContent = 'Check your email for a link to reset your password.';
+  });
+
   document.getElementById('signin-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('signin-error');
