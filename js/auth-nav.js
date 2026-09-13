@@ -22,12 +22,12 @@ async function initAuthNav() {
     try {
       const { data: profile } = await window.sb
         .from('profiles')
-        .select('real_name, username, is_admin')
+        .select('real_name, is_admin')
         .eq('id', session.user.id)
         .single();
 
       if (usernameEl) {
-        usernameEl.textContent = profile ? (profile.username || profile.real_name) : session.user.email;
+        usernameEl.textContent = profile ? profile.real_name : session.user.email;
       }
       if (adminItem) {
         adminItem.style.display = (profile && profile.is_admin) ? 'list-item' : 'none';

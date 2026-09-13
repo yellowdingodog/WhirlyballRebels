@@ -31,12 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
     errorEl.textContent = '';
 
     const realName = document.getElementById('signup-realname').value.trim();
-    const username = document.getElementById('signup-username').value.trim();
     const email = document.getElementById('signup-email').value.trim();
     const password = document.getElementById('signup-password').value;
 
-    if (!realName || !username) {
-      errorEl.textContent = 'Please fill in your name and a username.';
+    if (!realName) {
+      errorEl.textContent = 'Please enter your name.';
       return;
     }
 
@@ -50,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const { error: profileError } = await window.sb.from('profiles').insert({
         id: data.user.id,
         real_name: realName,
-        username: username,
       });
       if (profileError) {
         errorEl.textContent = 'Account created, but we could not save your profile: ' + profileError.message;

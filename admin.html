@@ -11,6 +11,15 @@
 <script src="js/supabase-client.js"></script>
 </head>
 <body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <a href="auth.html" id="nav-signin-link" class="nav-auth-link">Sign In</a>
+    <div id="nav-user-box" class="nav-user-box" style="display:none">
+      <span id="nav-username"></span>
+      <button type="button" id="nav-signout-btn" class="nav-auth-link nav-signout">Sign Out</button>
+    </div>
+  </div>
+</div>
 <header class="site-header">
   <div class="nav-wrap">
     <a class="brand" href="index.html">
@@ -30,13 +39,6 @@
         <li id="nav-polls-item" style="display:none"><a href="polls.html">Polls</a></li>
         <li id="nav-admin-item" style="display:none"><a href="admin.html" class="active">Admin</a></li>
       </ul>
-      <div class="nav-auth">
-        <a href="auth.html" id="nav-signin-link" class="nav-auth-link">Sign In</a>
-        <div id="nav-user-box" class="nav-user-box" style="display:none">
-          <span id="nav-username"></span>
-          <button type="button" id="nav-signout-btn" class="nav-auth-link nav-signout">Sign Out</button>
-        </div>
-      </div>
     </nav>
   </div>
 </header>
