@@ -22,6 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // The recovery link creates a temporary session just so this update
+    // could happen — sign out of it so the person has to log in fresh
+    // with their new password, rather than ending up already "logged in".
+    await window.sb.auth.signOut();
+
     errorEl.style.color = 'var(--ink-soft)';
     errorEl.textContent = 'Password updated! Redirecting to sign in&hellip;';
     setTimeout(() => { window.location.href = 'auth.html'; }, 1800);

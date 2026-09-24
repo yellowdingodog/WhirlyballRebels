@@ -8,12 +8,19 @@ async function initAuthNav() {
   const adminItem = document.getElementById('nav-admin-item');
   const signOutBtn = document.getElementById('nav-signout-btn');
 
+  // A password-recovery link creates a real Supabase session so the person
+  // can set a new password — but that's not a "real" login, so the nav
+  // should still show Sign In here, not the logged-in state.
+  const onResetPasswordPage = window.location.pathname.endsWith('reset-password.html');
+
   let session = null;
-  try {
-    const { data } = await window.sb.auth.getSession();
-    session = data.session;
-  } catch (err) {
-    console.error('Auth check failed', err);
+  if (!onResetPasswordPage) {
+    try {
+      const { data } = await window.sb.auth.getSession();
+      session = data.session;
+    } catch (err) {
+      console.error('Auth check failed', err);
+    }
   }
 
   if (session) {
