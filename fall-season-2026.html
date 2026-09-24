@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fall Season 2026 &mdash; Whirlyball Rebels League</title>
-<meta name="description" content="Fall 2026 league dates, registration, standings, and teams.">
+<title>Season &mdash; Whirlyball Rebels League</title>
+<meta name="description" content="Current season standings, schedule, and teams.">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -32,37 +32,29 @@
         <li><a href="index.html">Home</a></li>
 <li><a href="sign-up.html">Sign Up</a></li>
 <li><a href="rules.html">Rules</a></li>
-<li><a href="fall-season-2026.html" class="active">Fall Season 2026</a></li>
 <li><a href="buy-scoops.html">Buy Scoops</a></li>
 <li><a href="contact-us.html">Contact Us</a></li>
 
+        <li id="nav-season-item" style="display:none"><a href="season.html" id="nav-season-link" class="active">Season</a></li>
         <li id="nav-polls-item" style="display:none"><a href="polls.html">Polls</a></li>
         <li id="nav-admin-item" style="display:none"><a href="admin.html">Admin</a></li>
       </ul>
+
     </nav>
   </div>
 </header>
 
 <div class="page-hero">
   <div class="page-hero-inner">
-  <h1>Fall Season 2026</h1>
-  <p>Monday nights at 7pm &mdash; please arrive by 6:30.</p>
+  <h1 id="season-title">Season</h1>
+  <p id="season-dates"></p>
   </div>
 </div>
 
 <main>
-  <section class="block">
-    <h2>League Dates</h2>
-    <div class="schedule-strip">
-      <div>Mon Sep 14</div>
-      <div>Mon Sep 21</div>
-      <div>Mon Sep 28</div>
-      <div>Mon Oct 12</div>
-      <div>Mon Oct 19</div>
-      <div class="playoff">Mon Oct 26 &middot; Playoffs</div>
-    </div>
-    <p>Register below. Early bird rate is $120 by Aug 15, or $130 due by Sep 1.</p>
-    <a class="btn" href="https://docs.google.com/forms/d/e/1FAIpQLSfz0n9SMZzWa461GquLSuCKUYh-xxn8Njz6-ykpww8a74suMA/viewform?usp=sharing&ouid=113827082650557035087" target="_blank" rel="noopener">Register here</a>
+  <section class="block" id="registration-section" style="display:none">
+    <h2>Registration</h2>
+    <div id="registration-content"></div>
   </section>
 
   <section class="block">

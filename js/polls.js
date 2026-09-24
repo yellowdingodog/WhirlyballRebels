@@ -60,7 +60,7 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   } else if (poll.status === 'cancelled') {
     statusHtml = `<span class="poll-status cancelled">Cancelled</span>`;
   } else {
-    statusHtml = `<span class="poll-status open">Open</span>`;
+    statusHtml = `<span class="poll-status open">Not Yet Booked</span>`;
   }
 
   const current = myVoteMap[poll.id];

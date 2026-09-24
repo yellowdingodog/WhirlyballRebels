@@ -219,12 +219,6 @@ function renderRegistration(season) {
 }
 
 async function loadSeason() {
-  const { data: { session } } = await window.sb.auth.getSession();
-  if (!session) {
-    window.location.href = 'auth.html';
-    return;
-  }
-
   const { data: season, error: seasonError } = await window.sb
     .from('league_seasons')
     .select('*')

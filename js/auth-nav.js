@@ -37,32 +37,32 @@ async function initAuthNav() {
     } catch (err) {
       console.error('Profile lookup failed', err);
     }
-
-    if (seasonItem) {
-      try {
-        const { data: liveSeason } = await window.sb
-          .from('league_seasons')
-          .select('name')
-          .eq('is_current', true)
-          .limit(1)
-          .single();
-
-        if (liveSeason) {
-          if (seasonLink) seasonLink.textContent = liveSeason.name;
-          seasonItem.style.display = 'list-item';
-        } else {
-          seasonItem.style.display = 'none';
-        }
-      } catch (err) {
-        seasonItem.style.display = 'none';
-      }
-    }
   } else {
     if (signInLink) signInLink.style.display = 'inline';
     if (userBox) userBox.style.display = 'none';
     if (pollsItem) pollsItem.style.display = 'none';
     if (adminItem) adminItem.style.display = 'none';
-    if (seasonItem) seasonItem.style.display = 'none';
+  }
+
+  // The season page is public, so this check runs regardless of login state.
+  if (seasonItem) {
+    try {
+      const { data: liveSeason } = await window.sb
+        .from('league_seasons')
+        .select('name')
+        .eq('is_current', true)
+        .limit(1)
+        .single();
+
+      if (liveSeason) {
+        if (seasonLink) seasonLink.textContent = liveSeason.name;
+        seasonItem.style.display = 'list-item';
+      } else {
+        seasonItem.style.display = 'none';
+      }
+    } catch (err) {
+      seasonItem.style.display = 'none';
+    }
   }
 
   if (signOutBtn) {

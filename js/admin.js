@@ -182,7 +182,7 @@ function renderAdminPollCard(poll, profiles, votes, profileMap) {
     <div class="admin-status-row">
       <label>Status
         <select class="status-select" data-poll="${poll.id}">
-          <option value="open" ${poll.status === 'open' ? 'selected' : ''}>Open</option>
+          <option value="open" ${poll.status === 'open' ? 'selected' : ''}>Not Yet Booked</option>
           <option value="booked" ${poll.status === 'booked' ? 'selected' : ''}>Booked</option>
           <option value="cancelled" ${poll.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
         </select>
@@ -197,6 +197,7 @@ function renderAdminPollCard(poll, profiles, votes, profileMap) {
         <input type="text" class="booked-info" data-poll="${poll.id}" value="${escapeHtml(poll.booked_info || '')}" placeholder="e.g. Court 2">
       </label>
       <button type="button" class="btn btn-small save-status" data-poll="${poll.id}">Save</button>
+      <button type="button" class="link-button delete-poll" data-poll="${poll.id}">Delete Poll</button>
       <p class="save-msg" id="save-msg-${poll.id}"></p>
     </div>
 
@@ -282,6 +283,19 @@ async function loadAdminPolls() {
       } else {
         msgEl.textContent = 'Saved.';
         msgEl.style.color = 'var(--ink-soft)';
+        loadAdminPolls();
+      }
+    });
+  });
+
+  list.querySelectorAll('.delete-poll').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this poll? This also removes everyone\'s votes on it. This cannot be undone.')) return;
+      const pollId = btn.dataset.poll;
+      const { error } = await window.sb.from('polls').delete().eq('id', pollId);
+      if (error) {
+        alert('Could not delete poll: ' + error.message);
+      } else {
         loadAdminPolls();
       }
     });
