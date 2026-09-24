@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin &mdash; Whirlyball Rebels League</title>
-<meta name="description" content="Admin panel for Whirlyball Rebels League.">
+<title>Season &mdash; Whirlyball Rebels League</title>
+<meta name="description" content="Current season standings, schedule, and teams.">
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="assets/logo.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -35,9 +35,9 @@
 <li><a href="buy-scoops.html">Buy Scoops</a></li>
 <li><a href="contact-us.html">Contact Us</a></li>
 
-        <li id="nav-season-item" style="display:none"><a href="season.html" id="nav-season-link">Season</a></li>
+        <li id="nav-season-item" style="display:none"><a href="season.html" id="nav-season-link" class="active">Season</a></li>
         <li id="nav-polls-item" style="display:none"><a href="polls.html">Polls</a></li>
-        <li id="nav-admin-item" style="display:none"><a href="admin.html" class="active">Admin</a></li>
+        <li id="nav-admin-item" style="display:none"><a href="admin.html">Admin</a></li>
       </ul>
 
     </nav>
@@ -46,19 +46,31 @@
 
 <div class="page-hero">
   <div class="page-hero-inner">
-  <h1>Admin Panel</h1>
-  <p>Create polls and see who has responded.</p>
+  <h1 id="season-title">Season</h1>
+  <p id="season-dates"></p>
   </div>
 </div>
 
 <main>
-  <div class="admin-subnav">
-    <a href="admin.html" class="active">Polls Admin</a>
-    <a href="admin-league.html">League Admin</a>
-  </div>
-  <div id="admin-content">
-    <p>Checking access&hellip;</p>
-  </div>
+  <section class="block" id="registration-section" style="display:none">
+    <h2>Registration</h2>
+    <div id="registration-content"></div>
+  </section>
+
+  <section class="block">
+    <h2>Standings</h2>
+    <div id="standings-content"><p>Loading standings&hellip;</p></div>
+  </section>
+
+  <section class="block">
+    <h2>Schedule</h2>
+    <div id="schedule-content"><p>Loading schedule&hellip;</p></div>
+  </section>
+
+  <section class="block">
+    <h2>Teams</h2>
+    <div id="teams-content"><p>Loading teams&hellip;</p></div>
+  </section>
 </main>
 <footer class="site-footer">
   <div class="foot-inner">
@@ -75,6 +87,6 @@
 </footer>
 <script src="nav.js"></script>
 <script src="js/auth-nav.js"></script>
-<script src="js/admin.js"></script>
+<script src="js/season.js"></script>
 </body>
 </html>

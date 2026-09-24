@@ -149,9 +149,16 @@ function renderTeams(teams, players) {
     return;
   }
 
+  const sortedPlayers = [...players].sort((a, b) => {
+    const ao = a.sort_order == null ? Infinity : a.sort_order;
+    const bo = b.sort_order == null ? Infinity : b.sort_order;
+    if (ao !== bo) return ao - bo;
+    return (a.real_name || '').localeCompare(b.real_name || '');
+  });
+
   const rosterByTeam = {};
   teams.forEach(t => { rosterByTeam[t.id] = []; });
-  players.forEach(p => {
+  sortedPlayers.forEach(p => {
     if (p.team_id && rosterByTeam[p.team_id]) {
       rosterByTeam[p.team_id].push(p.real_name);
     }
@@ -171,6 +178,46 @@ function renderTeams(teams, players) {
   container.innerHTML = html;
 }
 
+function formatLongDate(d) {
+  if (!d) return '';
+  const date = new Date(d + 'T00:00:00');
+  return date.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
+function renderRegistration(season) {
+  const section = document.getElementById('registration-section');
+  const content = document.getElementById('registration-content');
+
+  if (!season.show_registration) {
+    section.style.display = 'none';
+    return;
+  }
+
+  let html = '<p>';
+  const parts = [];
+  if (season.early_bird_price != null && season.early_bird_deadline) {
+    parts.push(`Early bird rate is $${season.early_bird_price} by ${formatLongDate(season.early_bird_deadline)}`);
+  }
+  if (season.regular_price != null && season.registration_deadline) {
+    parts.push(`$${season.regular_price} due by ${formatLongDate(season.registration_deadline)}`);
+  }
+  html += parts.length ? parts.join(', or ') + '.' : 'Registration is open.';
+  html += '</p>';
+  content.innerHTML = html;
+
+  if (season.registration_url) {
+    const btn = document.createElement('a');
+    btn.className = 'btn';
+    btn.href = season.registration_url;
+    btn.target = '_blank';
+    btn.rel = 'noopener';
+    btn.textContent = 'Register here';
+    content.appendChild(btn);
+  }
+
+  section.style.display = 'block';
+}
+
 async function loadSeason() {
   const { data: { session } } = await window.sb.auth.getSession();
   if (!session) {
@@ -179,23 +226,34 @@ async function loadSeason() {
   }
 
   const { data: season, error: seasonError } = await window.sb
-    .from('seasons')
+    .from('league_seasons')
     .select('*')
     .eq('is_current', true)
     .limit(1)
     .single();
 
   if (seasonError || !season) {
+    document.getElementById('season-title').textContent = 'No active season';
+    document.getElementById('registration-section').style.display = 'none';
     document.getElementById('standings-content').innerHTML = '<p>No active season set up yet.</p>';
     document.getElementById('schedule-content').innerHTML = '';
     document.getElementById('teams-content').innerHTML = '';
     return;
   }
 
+  document.getElementById('season-title').textContent = season.name;
+  const datesEl = document.getElementById('season-dates');
+  if (season.league_start_date && season.league_end_date) {
+    datesEl.textContent = `${formatLongDate(season.league_start_date)} \u2013 ${formatLongDate(season.league_end_date)}`;
+  } else {
+    datesEl.textContent = '';
+  }
+  renderRegistration(season);
+
   const [{ data: teams }, { data: games }, { data: players }] = await Promise.all([
-    window.sb.from('teams').select('*').eq('season_id', season.id),
-    window.sb.from('games').select('*').eq('season_id', season.id),
-    window.sb.rpc('get_players_directory', { p_season_id: season.id }),
+    window.sb.from('league_teams').select('*').eq('season_id', season.id),
+    window.sb.from('league_games').select('*').eq('season_id', season.id),
+    window.sb.rpc('get_league_players_directory', { p_season_id: season.id }),
   ]);
 
   const teamList = teams || [];

@@ -2,6 +2,8 @@ async function initAuthNav() {
   const signInLink = document.getElementById('nav-signin-link');
   const userBox = document.getElementById('nav-user-box');
   const usernameEl = document.getElementById('nav-username');
+  const seasonItem = document.getElementById('nav-season-item');
+  const seasonLink = document.getElementById('nav-season-link');
   const pollsItem = document.getElementById('nav-polls-item');
   const adminItem = document.getElementById('nav-admin-item');
   const signOutBtn = document.getElementById('nav-signout-btn');
@@ -35,11 +37,32 @@ async function initAuthNav() {
     } catch (err) {
       console.error('Profile lookup failed', err);
     }
+
+    if (seasonItem) {
+      try {
+        const { data: liveSeason } = await window.sb
+          .from('league_seasons')
+          .select('name')
+          .eq('is_current', true)
+          .limit(1)
+          .single();
+
+        if (liveSeason) {
+          if (seasonLink) seasonLink.textContent = liveSeason.name;
+          seasonItem.style.display = 'list-item';
+        } else {
+          seasonItem.style.display = 'none';
+        }
+      } catch (err) {
+        seasonItem.style.display = 'none';
+      }
+    }
   } else {
     if (signInLink) signInLink.style.display = 'inline';
     if (userBox) userBox.style.display = 'none';
     if (pollsItem) pollsItem.style.display = 'none';
     if (adminItem) adminItem.style.display = 'none';
+    if (seasonItem) seasonItem.style.display = 'none';
   }
 
   if (signOutBtn) {
