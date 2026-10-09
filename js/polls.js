@@ -52,21 +52,59 @@ function nameFor(id, profileMap) {
   return p ? p.real_name : 'Unknown';
 }
 
-function sortNames(list) {
-  return list.slice().sort((a, b) => (a || '').localeCompare(b || '', undefined, { sensitivity: 'base' }));
+// Sort players by Division (A-D, blanks last), then Team (blanks last), then name.
+function cmpBlankLast(a, b) {
+  a = (a || '').trim(); b = (b || '').trim();
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return a.localeCompare(b, undefined, { sensitivity: 'base' });
+}
+
+function sortPeople(people) {
+  return people.slice().sort((a, b) =>
+    cmpBlankLast(a.division, b.division) ||
+    cmpBlankLast(a.team_name, b.team_name) ||
+    cmpBlankLast(a.real_name, b.real_name)
+  );
+}
+
+// Label for the separator above each Division/Team group
+function groupLabel(p) {
+  const div = (p.division || '').trim();
+  const team = (p.team_name || '').trim();
+  if (div && team) return `Division ${div} \u00b7 ${team}`;
+  if (div) return `Division ${div}`;
+  if (team) return team;
+  return 'No division';
+}
+
+function personFor(id, profileMap) {
+  return profileMap[id] || { real_name: 'Unknown' };
 }
 
 // UI state that survives re-renders (loadPolls re-runs after every vote)
 const openResults = new Set();
 let showPast = false;
 
-function renderNameColumn(label, cls, names) {
-  const items = names.length
-    ? names.map(n => `<li>${escapeHtml(n)}</li>`).join('')
+function renderNameColumn(label, cls, people) {
+  // Only show separators if anyone in this list has a division or team
+  const grouped = people.some(p => (p.division || '').trim() || (p.team_name || '').trim());
+  let lastGroup = null;
+  const items = people.length
+    ? people.map(p => {
+        let cls = '';
+        if (grouped) {
+          const g = groupLabel(p);
+          if (lastGroup !== null && g !== lastGroup) cls = ' class="group-start"';
+          lastGroup = g;
+        }
+        return `<li${cls}>${escapeHtml(p.real_name || 'Unknown')}</li>`;
+      }).join('')
     : '<li class="results-empty">&mdash;</li>';
   return `
     <div class="results-col ${cls}">
-      <h3>${label} <span>(${names.length})</span></h3>
+      <h3>${label} <span>(${people.length})</span></h3>
       <ul>${items}</ul>
     </div>`;
 }
@@ -89,10 +127,10 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   const votedIds = new Set(pollVotes.map(v => v.user_id));
   const notVoted = profiles.filter(p => !votedIds.has(p.id));
 
-  const goingList = sortNames(pollVotes.filter(v => v.vote === 'going').map(v => nameFor(v.user_id, profileMap)));
-  const maybeList = sortNames(pollVotes.filter(v => v.vote === 'maybe').map(v => nameFor(v.user_id, profileMap)));
-  const notGoingList = sortNames(pollVotes.filter(v => v.vote === 'not_going').map(v => nameFor(v.user_id, profileMap)));
-  const notVotedList = sortNames(notVoted.map(p => p.real_name));
+  const goingList = sortPeople(pollVotes.filter(v => v.vote === 'going').map(v => personFor(v.user_id, profileMap)));
+  const maybeList = sortPeople(pollVotes.filter(v => v.vote === 'maybe').map(v => personFor(v.user_id, profileMap)));
+  const notGoingList = sortPeople(pollVotes.filter(v => v.vote === 'not_going').map(v => personFor(v.user_id, profileMap)));
+  const notVotedList = sortPeople(notVoted);
 
   const isOpen = openResults.has(String(poll.id));
 
@@ -100,10 +138,9 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   card.className = 'card poll-card';
   card.innerHTML = `
     <div class="poll-head">
-      <h2>${escapeHtml(poll.title)}</h2>
+      <h2 class="poll-heading"><span class="poll-when">${formatPollDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span><span class="poll-sep"> &middot;</span></span> <span class="poll-title">${escapeHtml(poll.title)}</span></h2>
       ${statusHtml}
     </div>
-    <p class="poll-date">${formatPollDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span></p>
     ${poll.description ? `<p class="poll-desc">${escapeHtml(poll.description)}</p>` : ''}
     <div class="vote-buttons" data-poll="${poll.id}">
       <button type="button" class="vote-btn vote-going ${current === 'going' ? 'selected' : ''}" data-vote="going">Going <span class="vote-count">${goingList.length}</span></button>
@@ -118,6 +155,7 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
       ${renderNameColumn('Not Going', 'col-not-going', notGoingList)}
       ${renderNameColumn("Haven't Voted", 'col-no-vote', notVotedList)}
     </div>
+    <button type="button" class="link-toggle results-hide-bottom" aria-expanded="true" data-poll="${poll.id}"${isOpen ? '' : ' hidden'}>Hide results</button>
   `;
   return card;
 }
@@ -133,7 +171,7 @@ async function loadPolls() {
 
   const [{ data: polls, error }, { data: profiles }, { data: votes }] = await Promise.all([
     window.sb.from('polls').select('*'),
-    window.sb.from('profiles').select('id, real_name'),
+    window.sb.from('profiles').select('id, real_name, division, team_name'),
     window.sb.from('poll_votes').select('poll_id, user_id, vote'),
   ]);
 
@@ -198,15 +236,30 @@ async function loadPolls() {
     });
   }
 
+  function setResultsOpen(card, open) {
+    const topBtn = card.querySelector('.results-toggle');
+    const panel = card.querySelector('.vote-results');
+    const bottomBtn = card.querySelector('.results-hide-bottom');
+    panel.hidden = !open;
+    bottomBtn.hidden = !open;
+    topBtn.setAttribute('aria-expanded', String(open));
+    topBtn.textContent = open ? 'Hide results' : 'View results';
+    if (open) openResults.add(topBtn.dataset.poll); else openResults.delete(topBtn.dataset.poll);
+  }
+
   main.querySelectorAll('.results-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
-      const id = btn.dataset.poll;
-      const panel = btn.nextElementSibling;
-      const open = panel.hidden;
-      panel.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-      btn.textContent = open ? 'Hide results' : 'View results';
-      if (open) openResults.add(id); else openResults.delete(id);
+      const card = btn.closest('.poll-card');
+      setResultsOpen(card, card.querySelector('.vote-results').hidden);
+    });
+  });
+
+  main.querySelectorAll('.results-hide-bottom').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.poll-card');
+      setResultsOpen(card, false);
+      // Keep the collapsed card in view instead of leaving the user further down the page
+      if (card.getBoundingClientRect().top < 0) card.scrollIntoView({ block: 'start', behavior: 'smooth' });
     });
   });
 

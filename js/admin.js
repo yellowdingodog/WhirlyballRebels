@@ -165,10 +165,10 @@ function renderAdminPollCard(poll, profiles, votes, profileMap) {
   const votedIds = new Set(pollVotes.map(v => v.user_id));
   const notVoted = profiles.filter(p => !votedIds.has(p.id));
 
-  const goingList = pollVotes.filter(v => v.vote === 'going').map(v => nameFor(v.user_id, profileMap));
-  const maybeList = pollVotes.filter(v => v.vote === 'maybe').map(v => nameFor(v.user_id, profileMap));
-  const notGoingList = pollVotes.filter(v => v.vote === 'not_going').map(v => nameFor(v.user_id, profileMap));
-  const notVotedList = notVoted.map(p => p.real_name);
+  const goingCount = pollVotes.filter(v => v.vote === 'going').length;
+  const maybeCount = pollVotes.filter(v => v.vote === 'maybe').length;
+  const notGoingCount = pollVotes.filter(v => v.vote === 'not_going').length;
+  const notVotedCount = notVoted.length;
 
   const timeVal = poll.practice_time ? poll.practice_time.slice(0, 5) : '';
 
@@ -180,6 +180,9 @@ function renderAdminPollCard(poll, profiles, votes, profileMap) {
     ${poll.description ? `<p>${escapeHtml(poll.description)}</p>` : ''}
 
     <div class="admin-status-row">
+      <label class="title-label">Title
+        <input type="text" class="title-input" data-poll="${poll.id}" value="${escapeHtml(poll.title || '')}" required>
+      </label>
       <label>Status
         <select class="status-select" data-poll="${poll.id}">
           <option value="open" ${poll.status === 'open' ? 'selected' : ''}>Not Yet Booked</option>
@@ -197,15 +200,16 @@ function renderAdminPollCard(poll, profiles, votes, profileMap) {
         <input type="text" class="booked-info" data-poll="${poll.id}" value="${escapeHtml(poll.booked_info || '')}" placeholder="e.g. Court 2">
       </label>
       <button type="button" class="btn btn-small save-status" data-poll="${poll.id}">Save</button>
-      <button type="button" class="link-button delete-poll" data-poll="${poll.id}">Delete Poll</button>
+      <button type="button" class="link-button delete-poll" data-poll="${poll.id}"
+        data-title="${escapeHtml(poll.title || '')}" data-votes="${pollVotes.length}">Delete Poll</button>
       <p class="save-msg" id="save-msg-${poll.id}"></p>
     </div>
 
     <div class="vote-breakdown">
-      <p><strong>Going (${goingList.length}):</strong> ${goingList.join(', ') || '&mdash;'}</p>
-      <p><strong>Maybe (${maybeList.length}):</strong> ${maybeList.join(', ') || '&mdash;'}</p>
-      <p><strong>Not going (${notGoingList.length}):</strong> ${notGoingList.join(', ') || '&mdash;'}</p>
-      <p><strong>Haven't voted (${notVotedList.length}):</strong> ${notVotedList.join(', ') || '&mdash;'}</p>
+      <p><strong>Going:</strong> ${goingCount} &nbsp;&middot;&nbsp;
+         <strong>Maybe:</strong> ${maybeCount} &nbsp;&middot;&nbsp;
+         <strong>Not going:</strong> ${notGoingCount} &nbsp;&middot;&nbsp;
+         <strong>Haven't voted:</strong> ${notVotedCount}</p>
     </div>
   `;
   wireLocationToggle(card);
@@ -264,13 +268,21 @@ async function loadAdminPolls() {
   list.querySelectorAll('.save-status').forEach(btn => {
     btn.addEventListener('click', async () => {
       const pollId = btn.dataset.poll;
+      const title = list.querySelector(`.title-input[data-poll="${pollId}"]`).value.trim();
       const status = list.querySelector(`.status-select[data-poll="${pollId}"]`).value;
       const bookedInfo = list.querySelector(`.booked-info[data-poll="${pollId}"]`).value.trim() || null;
       const location = resolveLocationValue(list, pollId);
       const timeVal = list.querySelector(`.time-input[data-poll="${pollId}"]`).value || null;
       const msgEl = document.getElementById(`save-msg-${pollId}`);
 
+      if (!title) {
+        msgEl.textContent = 'Title cannot be blank.';
+        msgEl.style.color = 'var(--red)';
+        return;
+      }
+
       const { error } = await window.sb.from('polls').update({
+        title: title,
         status: status,
         booked_info: bookedInfo,
         location: location,
@@ -290,8 +302,11 @@ async function loadAdminPolls() {
 
   list.querySelectorAll('.delete-poll').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Delete this poll? This also removes everyone\'s votes on it. This cannot be undone.')) return;
       const pollId = btn.dataset.poll;
+      const title = btn.dataset.title;
+      const voteCount = Number(btn.dataset.votes) || 0;
+      const msg = `Delete "${title}"?\n\nThis poll has ${voteCount} vote${voteCount === 1 ? '' : 's'}, which will also be removed. This cannot be undone.`;
+      if (!confirm(msg)) return;
       const { error } = await window.sb.from('polls').delete().eq('id', pollId);
       if (error) {
         alert('Could not delete poll: ' + error.message);
