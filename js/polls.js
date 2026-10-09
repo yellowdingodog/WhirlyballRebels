@@ -7,7 +7,7 @@ function escapeHtml(str) {
 function formatPollDate(d) {
   if (!d) return 'Date TBD';
   const date = new Date(d + 'T00:00:00');
-  return date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatTime(t) {
@@ -52,6 +52,25 @@ function nameFor(id, profileMap) {
   return p ? p.real_name : 'Unknown';
 }
 
+function sortNames(list) {
+  return list.slice().sort((a, b) => (a || '').localeCompare(b || '', undefined, { sensitivity: 'base' }));
+}
+
+// UI state that survives re-renders (loadPolls re-runs after every vote)
+const openResults = new Set();
+let showPast = false;
+
+function renderNameColumn(label, cls, names) {
+  const items = names.length
+    ? names.map(n => `<li>${escapeHtml(n)}</li>`).join('')
+    : '<li class="results-empty">&mdash;</li>';
+  return `
+    <div class="results-col ${cls}">
+      <h3>${label} <span>(${names.length})</span></h3>
+      <ul>${items}</ul>
+    </div>`;
+}
+
 function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   let statusHtml;
   if (poll.status === 'booked') {
@@ -70,28 +89,34 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   const votedIds = new Set(pollVotes.map(v => v.user_id));
   const notVoted = profiles.filter(p => !votedIds.has(p.id));
 
-  const goingList = pollVotes.filter(v => v.vote === 'going').map(v => nameFor(v.user_id, profileMap));
-  const maybeList = pollVotes.filter(v => v.vote === 'maybe').map(v => nameFor(v.user_id, profileMap));
-  const notGoingList = pollVotes.filter(v => v.vote === 'not_going').map(v => nameFor(v.user_id, profileMap));
-  const notVotedList = notVoted.map(p => p.real_name);
+  const goingList = sortNames(pollVotes.filter(v => v.vote === 'going').map(v => nameFor(v.user_id, profileMap)));
+  const maybeList = sortNames(pollVotes.filter(v => v.vote === 'maybe').map(v => nameFor(v.user_id, profileMap)));
+  const notGoingList = sortNames(pollVotes.filter(v => v.vote === 'not_going').map(v => nameFor(v.user_id, profileMap)));
+  const notVotedList = sortNames(notVoted.map(p => p.real_name));
+
+  const isOpen = openResults.has(String(poll.id));
 
   const card = document.createElement('section');
   card.className = 'card poll-card';
   card.innerHTML = `
-    <h2>${escapeHtml(poll.title)}</h2>
-    <p class="poll-date">${formatPollDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span></p>
-    ${statusHtml}
-    ${poll.description ? `<p>${escapeHtml(poll.description)}</p>` : ''}
-    <div class="vote-buttons" data-poll="${poll.id}">
-      <button type="button" class="vote-btn vote-going ${current === 'going' ? 'selected' : ''}" data-vote="going">Going</button>
-      <button type="button" class="vote-btn vote-maybe ${current === 'maybe' ? 'selected' : ''}" data-vote="maybe">Maybe</button>
-      <button type="button" class="vote-btn vote-not-going ${current === 'not_going' ? 'selected' : ''}" data-vote="not_going">Not Going</button>
+    <div class="poll-head">
+      <h2>${escapeHtml(poll.title)}</h2>
+      ${statusHtml}
     </div>
-    <div class="vote-breakdown">
-      <p><strong>Going (${goingList.length}):</strong> ${goingList.join(', ') || '&mdash;'}</p>
-      <p><strong>Maybe (${maybeList.length}):</strong> ${maybeList.join(', ') || '&mdash;'}</p>
-      <p><strong>Not going (${notGoingList.length}):</strong> ${notGoingList.join(', ') || '&mdash;'}</p>
-      <p><strong>Haven't voted (${notVotedList.length}):</strong> ${notVotedList.join(', ') || '&mdash;'}</p>
+    <p class="poll-date">${formatPollDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span></p>
+    ${poll.description ? `<p class="poll-desc">${escapeHtml(poll.description)}</p>` : ''}
+    <div class="vote-buttons" data-poll="${poll.id}">
+      <button type="button" class="vote-btn vote-going ${current === 'going' ? 'selected' : ''}" data-vote="going">Going <span class="vote-count">${goingList.length}</span></button>
+      <button type="button" class="vote-btn vote-maybe ${current === 'maybe' ? 'selected' : ''}" data-vote="maybe">Maybe <span class="vote-count">${maybeList.length}</span></button>
+      <button type="button" class="vote-btn vote-not-going ${current === 'not_going' ? 'selected' : ''}" data-vote="not_going">Not Going <span class="vote-count">${notGoingList.length}</span></button>
+      <button type="button" class="vote-btn vote-no-vote ${!current ? 'selected' : ''}" data-vote="none">Not Voted <span class="vote-count">${notVotedList.length}</span></button>
+    </div>
+    <button type="button" class="link-toggle results-toggle" aria-expanded="${isOpen}" data-poll="${poll.id}">${isOpen ? 'Hide results' : 'View results'}</button>
+    <div class="vote-results"${isOpen ? '' : ' hidden'}>
+      ${renderNameColumn('Going', 'col-going', goingList)}
+      ${renderNameColumn('Maybe', 'col-maybe', maybeList)}
+      ${renderNameColumn('Not Going', 'col-not-going', notGoingList)}
+      ${renderNameColumn("Haven't Voted", 'col-no-vote', notVotedList)}
     </div>
   `;
   return card;
@@ -147,12 +172,43 @@ async function loadPolls() {
   }
 
   if (past.length) {
+    const pastToggle = document.createElement('button');
+    pastToggle.type = 'button';
+    pastToggle.className = 'link-toggle past-toggle';
+    pastToggle.setAttribute('aria-expanded', String(showPast));
+    pastToggle.textContent = showPast ? 'Hide past practices' : `Show past practices (${past.length})`;
+    main.appendChild(pastToggle);
+
+    const pastWrap = document.createElement('div');
+    pastWrap.className = 'past-polls';
+    pastWrap.hidden = !showPast;
+
     const pastHeading = document.createElement('h2');
     pastHeading.className = 'polls-section-heading polls-section-past';
     pastHeading.textContent = 'Past Practices';
-    main.appendChild(pastHeading);
-    past.forEach(poll => main.appendChild(renderPollCard(poll, myVoteMap, votes || [], profiles || [], profileMap)));
+    pastWrap.appendChild(pastHeading);
+    past.forEach(poll => pastWrap.appendChild(renderPollCard(poll, myVoteMap, votes || [], profiles || [], profileMap)));
+    main.appendChild(pastWrap);
+
+    pastToggle.addEventListener('click', () => {
+      showPast = !showPast;
+      pastWrap.hidden = !showPast;
+      pastToggle.setAttribute('aria-expanded', String(showPast));
+      pastToggle.textContent = showPast ? 'Hide past practices' : `Show past practices (${past.length})`;
+    });
   }
+
+  main.querySelectorAll('.results-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.poll;
+      const panel = btn.nextElementSibling;
+      const open = panel.hidden;
+      panel.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      btn.textContent = open ? 'Hide results' : 'View results';
+      if (open) openResults.add(id); else openResults.delete(id);
+    });
+  });
 
   main.querySelectorAll('.vote-buttons').forEach(group => {
     group.querySelectorAll('.vote-btn').forEach(btn => {
@@ -163,10 +219,12 @@ async function loadPolls() {
         group.querySelectorAll('.vote-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
 
-        const { error } = await window.sb.from('poll_votes').upsert(
-          { poll_id: pollId, user_id: session.user.id, vote: vote },
-          { onConflict: 'poll_id,user_id' }
-        );
+        const { error } = vote === 'none'
+          ? await window.sb.from('poll_votes').delete().eq('poll_id', pollId).eq('user_id', session.user.id)
+          : await window.sb.from('poll_votes').upsert(
+              { poll_id: pollId, user_id: session.user.id, vote: vote },
+              { onConflict: 'poll_id,user_id' }
+            );
         if (error) {
           alert('Could not save your vote: ' + error.message);
           console.error(error);
