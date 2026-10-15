@@ -80,14 +80,25 @@ function groupLabel(p) {
 }
 
 function personFor(id, profileMap) {
-  return profileMap[id] || { real_name: 'Unknown' };
+  return profileMap[id] || { id, real_name: 'Unknown' };
 }
 
 // UI state that survives re-renders (loadPolls re-runs after every vote)
 const openResults = new Set();
 let showPast = false;
 
-function renderNameColumn(label, cls, people) {
+// Admin vote editing
+let isAdmin = false;
+const adminEditPolls = new Set();   // poll ids currently in "Edit votes" mode
+const adminSelected = new Map();    // poll id -> Set of selected user ids
+function selectedFor(pollId) {
+  pollId = String(pollId);
+  if (!adminSelected.has(pollId)) adminSelected.set(pollId, new Set());
+  return adminSelected.get(pollId);
+}
+
+function renderNameColumn(label, cls, people, pollId, editMode) {
+  const selected = editMode ? selectedFor(pollId) : null;
   // Only show separators if anyone in this list has a division or team
   const grouped = people.some(p => (p.division || '').trim() || (p.team_name || '').trim());
   let lastGroup = null;
@@ -99,7 +110,12 @@ function renderNameColumn(label, cls, people) {
           if (lastGroup !== null && g !== lastGroup) cls = ' class="group-start"';
           lastGroup = g;
         }
-        return `<li${cls}>${escapeHtml(p.real_name || 'Unknown')}</li>`;
+        const name = escapeHtml(p.real_name || 'Unknown');
+        if (editMode && p.id) {
+          const checked = selected.has(p.id) ? ' checked' : '';
+          return `<li${cls}><label class="admin-pick"><input type="checkbox" class="admin-pick-box" data-user="${escapeHtml(p.id)}" data-name="${name}"${checked}> <span>${name}</span></label></li>`;
+        }
+        return `<li${cls}>${name}</li>`;
       }).join('')
     : '<li class="results-empty">&mdash;</li>';
   return `
@@ -132,10 +148,13 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   const notGoingList = sortPeople(pollVotes.filter(v => v.vote === 'not_going').map(v => personFor(v.user_id, profileMap)));
   const notVotedList = sortPeople(notVoted);
 
-  const isOpen = openResults.has(String(poll.id));
+  const editMode = isAdmin && adminEditPolls.has(String(poll.id));
+  const isOpen = openResults.has(String(poll.id)) || editMode;
+  const selCount = editMode ? selectedFor(poll.id).size : 0;
 
   const card = document.createElement('section');
-  card.className = 'card poll-card';
+  card.className = 'card poll-card' + (editMode ? ' admin-editing' : '');
+  card.dataset.poll = poll.id;
   card.innerHTML = `
     <div class="poll-head">
       <h2 class="poll-heading"><span class="poll-when">${formatPollDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span><span class="poll-sep"> &middot;</span></span> <span class="poll-title">${escapeHtml(poll.title)}</span></h2>
@@ -148,14 +167,23 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
       <button type="button" class="vote-btn vote-not-going ${current === 'not_going' ? 'selected' : ''}" data-vote="not_going">Not Going <span class="vote-count">${notGoingList.length}</span></button>
       <button type="button" class="vote-btn vote-no-vote ${!current ? 'selected' : ''}" data-vote="none">Not Voted <span class="vote-count">${notVotedList.length}</span></button>
     </div>
-    <button type="button" class="link-toggle results-toggle" aria-expanded="${isOpen}" data-poll="${poll.id}">${isOpen ? 'Hide results' : 'View results'}</button>
-    <div class="vote-results"${isOpen ? '' : ' hidden'}>
-      ${renderNameColumn('Going', 'col-going', goingList)}
-      ${renderNameColumn('Maybe', 'col-maybe', maybeList)}
-      ${renderNameColumn('Not Going', 'col-not-going', notGoingList)}
-      ${renderNameColumn("Haven't Voted", 'col-no-vote', notVotedList)}
+    <div class="poll-actions">
+      ${editMode ? '' : `<button type="button" class="link-toggle results-toggle" aria-expanded="${isOpen}" data-poll="${poll.id}">${isOpen ? 'Hide results' : 'View results'}</button>`}
+      ${isAdmin ? `<button type="button" class="admin-edit-toggle${editMode ? ' active' : ''}" data-poll="${poll.id}">${editMode ? 'Done editing' : 'Edit votes'}</button>` : ''}
     </div>
-    <button type="button" class="link-toggle results-hide-bottom" aria-expanded="true" data-poll="${poll.id}"${isOpen ? '' : ' hidden'}>Hide results</button>
+    ${editMode ? `
+    <div class="admin-edit-bar">
+      <span class="admin-edit-hint">Admin mode &mdash; tick players, then change their vote.</span>
+      <span class="admin-edit-count">${selCount} selected</span>
+      <button type="button" class="btn btn-small admin-change-btn" data-poll="${poll.id}"${selCount ? '' : ' disabled'}>Change vote&hellip;</button>
+    </div>` : ''}
+    <div class="vote-results"${isOpen ? '' : ' hidden'}>
+      ${renderNameColumn('Going', 'col-going', goingList, poll.id, editMode)}
+      ${renderNameColumn('Maybe', 'col-maybe', maybeList, poll.id, editMode)}
+      ${renderNameColumn('Not Going', 'col-not-going', notGoingList, poll.id, editMode)}
+      ${renderNameColumn("Haven't Voted", 'col-no-vote', notVotedList, poll.id, editMode)}
+    </div>
+    <button type="button" class="link-toggle results-hide-bottom" aria-expanded="true" data-poll="${poll.id}"${isOpen && !editMode ? '' : ' hidden'}>Hide results</button>
   `;
   return card;
 }
@@ -171,7 +199,7 @@ async function loadPolls() {
 
   const [{ data: polls, error }, { data: profiles }, { data: votes }] = await Promise.all([
     window.sb.from('polls').select('*'),
-    window.sb.from('profiles').select('id, real_name, division, team_name'),
+    window.sb.from('profiles').select('id, real_name, division, team_name, is_admin'),
     window.sb.from('poll_votes').select('poll_id, user_id, vote'),
   ]);
 
@@ -191,6 +219,7 @@ async function loadPolls() {
 
   const profileMap = {};
   (profiles || []).forEach(p => { profileMap[p.id] = p; });
+  isAdmin = !!(profileMap[session.user.id] && profileMap[session.user.id].is_admin);
 
   const { upcoming, past } = splitUpcomingPast(polls);
 
@@ -238,6 +267,7 @@ async function loadPolls() {
 
   function setResultsOpen(card, open) {
     const topBtn = card.querySelector('.results-toggle');
+    if (!topBtn) return; // admin edit mode keeps results pinned open
     const panel = card.querySelector('.vote-results');
     const bottomBtn = card.querySelector('.results-hide-bottom');
     panel.hidden = !open;
@@ -287,6 +317,118 @@ async function loadPolls() {
       });
     });
   });
+
+  if (isAdmin) wireAdminEditing(main, profileMap);
+}
+
+// ---------- Admin: change other players' votes ----------
+const VOTE_LABELS = { going: 'Going', maybe: 'Maybe', not_going: 'Not Going', none: 'Not Voted' };
+
+function wireAdminEditing(main, profileMap) {
+  main.querySelectorAll('.admin-edit-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pollId = btn.dataset.poll;
+      if (adminEditPolls.has(pollId)) {
+        adminEditPolls.delete(pollId);
+        adminSelected.delete(pollId);
+      } else {
+        adminEditPolls.add(pollId);
+        openResults.add(pollId);
+      }
+      loadPolls();
+    });
+  });
+
+  main.querySelectorAll('.poll-card.admin-editing').forEach(card => {
+    const pollId = card.dataset.poll;
+    const sel = selectedFor(pollId);
+    const countEl = card.querySelector('.admin-edit-count');
+    const changeBtn = card.querySelector('.admin-change-btn');
+    const refresh = () => {
+      countEl.textContent = `${sel.size} selected`;
+      changeBtn.disabled = sel.size === 0;
+    };
+
+    card.querySelectorAll('.admin-pick-box').forEach(box => {
+      box.addEventListener('change', () => {
+        if (box.checked) sel.add(box.dataset.user); else sel.delete(box.dataset.user);
+        refresh();
+      });
+    });
+
+    changeBtn.addEventListener('click', () => {
+      const ids = [...sel];
+      if (!ids.length) return;
+      const names = ids.map(id => (profileMap[id] && profileMap[id].real_name) || 'Unknown');
+      const title = card.querySelector('.poll-title').textContent;
+      openVoteDialog(pollId, title, ids, names);
+    });
+  });
+}
+
+function getVoteDialog() {
+  let dlg = document.getElementById('admin-vote-dialog');
+  if (dlg) return dlg;
+  dlg = document.createElement('dialog');
+  dlg.id = 'admin-vote-dialog';
+  dlg.className = 'admin-vote-dialog';
+  dlg.innerHTML = `
+    <form method="dialog">
+      <h2>Change vote</h2>
+      <p class="dlg-poll"></p>
+      <p class="dlg-names"></p>
+      <div class="dlg-choices">
+        <button type="button" class="vote-btn vote-going" data-vote="going">${VOTE_LABELS.going}</button>
+        <button type="button" class="vote-btn vote-maybe" data-vote="maybe">${VOTE_LABELS.maybe}</button>
+        <button type="button" class="vote-btn vote-not-going" data-vote="not_going">${VOTE_LABELS.not_going}</button>
+        <button type="button" class="vote-btn vote-no-vote" data-vote="none">${VOTE_LABELS.none}</button>
+      </div>
+      <p class="dlg-msg"></p>
+      <div class="dlg-foot"><button type="submit" class="link-button dlg-cancel">Cancel</button></div>
+    </form>`;
+  document.body.appendChild(dlg);
+  // Click on the dimmed backdrop closes it
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+  return dlg;
+}
+
+function openVoteDialog(pollId, pollTitle, userIds, names) {
+  const dlg = getVoteDialog();
+  dlg.querySelector('.dlg-poll').textContent = pollTitle;
+  dlg.querySelector('.dlg-names').textContent =
+    `${names.length} player${names.length === 1 ? '' : 's'}: ${names.join(', ')}`;
+  const msg = dlg.querySelector('.dlg-msg');
+  msg.textContent = '';
+
+  // Re-bind choice buttons for this poll/selection
+  dlg.querySelectorAll('.dlg-choices .vote-btn').forEach(old => {
+    const btn = old.cloneNode(true);
+    old.replaceWith(btn);
+    btn.addEventListener('click', async () => {
+      const vote = btn.dataset.vote;
+      dlg.querySelectorAll('.dlg-choices .vote-btn').forEach(b => { b.disabled = true; });
+      msg.textContent = 'Saving\u2026';
+
+      const { error } = vote === 'none'
+        ? await window.sb.from('poll_votes').delete().eq('poll_id', pollId).in('user_id', userIds)
+        : await window.sb.from('poll_votes').upsert(
+            userIds.map(uid => ({ poll_id: pollId, user_id: uid, vote })),
+            { onConflict: 'poll_id,user_id' }
+          );
+
+      dlg.querySelectorAll('.dlg-choices .vote-btn').forEach(b => { b.disabled = false; });
+      if (error) {
+        msg.textContent = 'Could not save: ' + error.message;
+        console.error(error);
+        return;
+      }
+      adminSelected.delete(String(pollId));
+      dlg.close();
+      loadPolls();
+    });
+  });
+
+  dlg.showModal();
 }
 
 document.addEventListener('DOMContentLoaded', loadPolls);

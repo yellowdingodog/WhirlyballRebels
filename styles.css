@@ -941,3 +941,51 @@ main.polls-main{ padding-top:1.6rem; padding-bottom:3rem; }
   padding-top:0.35rem;
   border-top:1px solid var(--line);
 }
+
+/* ---------- Admin: edit other players' votes (polls page) ---------- */
+.poll-actions{ display:flex; align-items:center; gap:0.8rem; }
+.admin-edit-toggle{
+  margin:0.6rem 0 0 auto;
+  background:none;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:0.2rem 0.75rem;
+  font-family:'Source Sans 3', sans-serif;
+  font-size:0.82rem;
+  font-weight:600;
+  color:var(--ink-soft);
+  cursor:pointer;
+}
+.admin-edit-toggle:hover{ border-color:var(--maroon); color:var(--maroon); }
+.admin-edit-toggle.active{ background:var(--maroon); border-color:var(--maroon); color:#fff; }
+.poll-card.admin-editing{ outline:2px dashed var(--maroon-light); outline-offset:2px; }
+.admin-edit-bar{
+  display:flex; flex-wrap:wrap; align-items:center; gap:0.5rem 0.9rem;
+  margin-top:0.6rem; padding:0.5rem 0.7rem;
+  background:rgba(92,36,48,0.07); border-radius:6px;
+  font-size:0.88rem;
+}
+.admin-edit-hint{ color:var(--ink-soft); flex:1 1 auto; }
+.admin-edit-count{ font-weight:600; color:var(--ink); }
+.admin-change-btn[disabled]{ opacity:0.45; cursor:not-allowed; }
+.admin-pick{ display:flex; align-items:center; gap:0.35rem; cursor:pointer; }
+.admin-pick input{ width:1rem; height:1rem; margin:0; accent-color:var(--maroon); }
+
+.admin-vote-dialog{
+  border:none; border-radius:10px; padding:1.2rem 1.3rem 0.9rem;
+  width:min(420px, calc(100vw - 2rem));
+  box-shadow:0 12px 40px rgba(32,11,16,0.3);
+  color:var(--ink); background:var(--paper);
+}
+.admin-vote-dialog::backdrop{ background:rgba(32,11,16,0.45); }
+.admin-vote-dialog h2{ font-size:1.25rem; margin:0 0 0.2rem; }
+.admin-vote-dialog .dlg-poll{ margin:0 0 0.5rem; font-weight:600; color:var(--ink); }
+.admin-vote-dialog .dlg-names{ margin:0 0 0.9rem; font-size:0.92rem; }
+.admin-vote-dialog .dlg-choices{ display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
+.admin-vote-dialog .dlg-choices .vote-btn{ width:100%; }
+.admin-vote-dialog .dlg-choices .vote-going:hover{ background:#2E7D4F; border-color:#2E7D4F; color:#fff; }
+.admin-vote-dialog .dlg-choices .vote-maybe:hover{ background:#C7891C; border-color:#C7891C; color:#fff; }
+.admin-vote-dialog .dlg-choices .vote-not-going:hover{ background:var(--red); border-color:var(--red); color:#fff; }
+.admin-vote-dialog .dlg-choices .vote-no-vote:hover{ background:var(--ink-soft); border-color:var(--ink-soft); color:#fff; }
+.admin-vote-dialog .dlg-msg{ min-height:1.2em; margin:0.6rem 0 0; font-size:0.88rem; color:var(--red); }
+.admin-vote-dialog .dlg-foot{ text-align:right; }
