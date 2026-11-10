@@ -128,9 +128,7 @@ function renderNameColumn(label, cls, people, pollId, editMode) {
           lastGroup = g;
         }
         const name = escapeHtml(p.real_name || 'Unknown');
-        const extra =
-          (p.isGuest ? ' <span class="guest-tag">guest</span>' : '') +
-          (p.note ? ` <span class="vote-note">${escapeHtml(p.note)}</span>` : '');
+        const extra = p.note ? ` <span class="vote-note">${escapeHtml(p.note)}</span>` : '';
         const key = p.isGuest ? 'g:' + p.guestId : p.id;
         if (editMode && key) {
           const checked = selected.has(key) ? ' checked' : '';
