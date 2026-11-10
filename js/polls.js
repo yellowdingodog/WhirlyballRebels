@@ -63,6 +63,7 @@ function cmpBlankLast(a, b) {
 
 function sortPeople(people) {
   return people.slice().sort((a, b) =>
+    (a.isGuest ? 1 : 0) - (b.isGuest ? 1 : 0) ||
     cmpBlankLast(a.division, b.division) ||
     cmpBlankLast(a.team_name, b.team_name) ||
     cmpBlankLast(a.real_name, b.real_name)
@@ -71,6 +72,7 @@ function sortPeople(people) {
 
 // Label for the separator above each Division/Team group
 function groupLabel(p) {
+  if (p.isGuest) return 'Guests';
   const div = (p.division || '').trim();
   const team = (p.team_name || '').trim();
   if (div && team) return `Division ${div} \u00b7 ${team}`;
@@ -87,6 +89,21 @@ function personFor(id, profileMap) {
 const openResults = new Set();
 let showPast = false;
 
+// Poll type filter: all | practice | event | other  (kept in the URL hash, e.g. polls.html#event)
+const POLL_TYPES = [
+  { key: 'all',      label: 'All' },
+  { key: 'practice', label: 'Practices' },
+  { key: 'event',    label: 'Events' },
+  { key: 'other',    label: 'Other' },
+];
+const TYPE_BADGE = { practice: 'Practice', event: 'Event', other: 'Other' };
+function pollTypeOf(p) { return TYPE_BADGE[p.poll_type] ? p.poll_type : 'practice'; }
+function filterFromHash() {
+  const h = (window.location.hash || '').replace('#', '').toLowerCase();
+  return POLL_TYPES.some(t => t.key === h) ? h : 'all';
+}
+let typeFilter = filterFromHash();
+
 // Admin vote editing
 let isAdmin = false;
 const adminEditPolls = new Set();   // poll ids currently in "Edit votes" mode
@@ -100,7 +117,7 @@ function selectedFor(pollId) {
 function renderNameColumn(label, cls, people, pollId, editMode) {
   const selected = editMode ? selectedFor(pollId) : null;
   // Only show separators if anyone in this list has a division or team
-  const grouped = people.some(p => (p.division || '').trim() || (p.team_name || '').trim());
+  const grouped = people.some(p => p.isGuest || (p.division || '').trim() || (p.team_name || '').trim());
   let lastGroup = null;
   const items = people.length
     ? people.map(p => {
@@ -111,11 +128,15 @@ function renderNameColumn(label, cls, people, pollId, editMode) {
           lastGroup = g;
         }
         const name = escapeHtml(p.real_name || 'Unknown');
-        if (editMode && p.id) {
-          const checked = selected.has(p.id) ? ' checked' : '';
-          return `<li${cls}><label class="admin-pick"><input type="checkbox" class="admin-pick-box" data-user="${escapeHtml(p.id)}" data-name="${name}"${checked}> <span>${name}</span></label></li>`;
+        const extra =
+          (p.isGuest ? ' <span class="guest-tag">guest</span>' : '') +
+          (p.note ? ` <span class="vote-note">${escapeHtml(p.note)}</span>` : '');
+        const key = p.isGuest ? 'g:' + p.guestId : p.id;
+        if (editMode && key) {
+          const checked = selected.has(key) ? ' checked' : '';
+          return `<li${cls}><label class="admin-pick"><input type="checkbox" class="admin-pick-box" data-key="${escapeHtml(key)}" data-name="${name}"${checked}> <span>${name}${extra}</span></label></li>`;
         }
-        return `<li${cls}>${name}</li>`;
+        return `<li${cls}>${name}${extra}</li>`;
       }).join('')
     : '<li class="results-empty">&mdash;</li>';
   return `
@@ -125,7 +146,7 @@ function renderNameColumn(label, cls, people, pollId, editMode) {
     </div>`;
 }
 
-function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
+function renderPollCard(poll, myVoteMap, votes, profiles, profileMap, guests, myNoteMap) {
   let statusHtml;
   if (poll.status === 'booked') {
     const timeStr = formatTime(poll.practice_time);
@@ -143,9 +164,15 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   const votedIds = new Set(pollVotes.map(v => v.user_id));
   const notVoted = profiles.filter(p => !votedIds.has(p.id));
 
-  const goingList = sortPeople(pollVotes.filter(v => v.vote === 'going').map(v => personFor(v.user_id, profileMap)));
-  const maybeList = sortPeople(pollVotes.filter(v => v.vote === 'maybe').map(v => personFor(v.user_id, profileMap)));
-  const notGoingList = sortPeople(pollVotes.filter(v => v.vote === 'not_going').map(v => personFor(v.user_id, profileMap)));
+  const pollGuests = (guests || []).filter(g => String(g.poll_id) === String(poll.id));
+  const listFor = vote => sortPeople([
+    ...pollVotes.filter(v => v.vote === vote).map(v => ({ ...personFor(v.user_id, profileMap), note: v.note })),
+    ...pollGuests.filter(g => g.vote === vote).map(g => ({ isGuest: true, guestId: g.id, real_name: g.name, note: g.note })),
+  ]);
+  const goingList = listFor('going');
+  const maybeList = listFor('maybe');
+  const notGoingList = listFor('not_going');
+  const myNote = (myNoteMap || {})[poll.id] || '';
   const notVotedList = sortPeople(notVoted);
 
   const editMode = isAdmin && adminEditPolls.has(String(poll.id));
@@ -157,7 +184,7 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
   card.dataset.poll = poll.id;
   card.innerHTML = `
     <div class="poll-head">
-      <h2 class="poll-heading"><span class="poll-when">${formatPollDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span><span class="poll-sep"> &middot;</span></span> <span class="poll-title">${escapeHtml(poll.title)}</span></h2>
+      <h2 class="poll-heading"><span class="poll-type-badge type-${pollTypeOf(poll)}">${TYPE_BADGE[pollTypeOf(poll)]}</span> <span class="poll-when">${formatPollDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span><span class="poll-sep"> &middot;</span></span> <span class="poll-title">${escapeHtml(poll.title)}</span></h2>
       ${statusHtml}
     </div>
     ${poll.description ? `<p class="poll-desc">${escapeHtml(poll.description)}</p>` : ''}
@@ -167,6 +194,12 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
       <button type="button" class="vote-btn vote-not-going ${current === 'not_going' ? 'selected' : ''}" data-vote="not_going">Not Going <span class="vote-count">${notGoingList.length}</span></button>
       <button type="button" class="vote-btn vote-no-vote ${!current ? 'selected' : ''}" data-vote="none">Not Voted <span class="vote-count">${notVotedList.length}</span></button>
     </div>
+    ${current ? `
+    <form class="my-note-row" data-poll="${poll.id}">
+      <label>Your note <input type="text" class="my-note-input" maxlength="20" value="${escapeHtml(myNote)}" placeholder="e.g. be there at 12"></label>
+      <button type="submit" class="btn btn-small">Save note</button>
+      <span class="my-note-msg"></span>
+    </form>` : ''}
     <div class="poll-actions">
       ${editMode ? '' : `<button type="button" class="link-toggle results-toggle" aria-expanded="${isOpen}" data-poll="${poll.id}">${isOpen ? 'Hide results' : 'View results'}</button>`}
       ${isAdmin ? `<button type="button" class="admin-edit-toggle${editMode ? ' active' : ''}" data-poll="${poll.id}">${editMode ? 'Done editing' : 'Edit votes'}</button>` : ''}
@@ -176,7 +209,19 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap) {
       <span class="admin-edit-hint">Admin mode &mdash; tick players, then change their vote.</span>
       <span class="admin-edit-count">${selCount} selected</span>
       <button type="button" class="btn btn-small admin-change-btn" data-poll="${poll.id}"${selCount ? '' : ' disabled'}>Change vote&hellip;</button>
-    </div>` : ''}
+    </div>
+    <form class="guest-add" data-poll="${poll.id}">
+      <strong>Add a guest</strong>
+      <input type="text" class="guest-name" maxlength="60" placeholder="Name" required>
+      <select class="guest-vote">
+        <option value="going">Going</option>
+        <option value="maybe">Maybe</option>
+        <option value="not_going">Not Going</option>
+      </select>
+      <input type="text" class="guest-note" maxlength="20" placeholder="Note (optional)">
+      <button type="submit" class="btn btn-small">Add guest</button>
+      <span class="guest-msg"></span>
+    </form>` : ''}
     <div class="vote-results"${isOpen ? '' : ' hidden'}>
       ${renderNameColumn('Going', 'col-going', goingList, poll.id, editMode)}
       ${renderNameColumn('Maybe', 'col-maybe', maybeList, poll.id, editMode)}
@@ -197,11 +242,20 @@ async function loadPolls() {
     return;
   }
 
-  const [{ data: polls, error }, { data: profiles }, { data: votes }] = await Promise.all([
+  const [{ data: polls, error }, { data: profiles }, votesRes, guestsRes] = await Promise.all([
     window.sb.from('polls').select('*'),
     window.sb.from('profiles').select('id, real_name, division, team_name, is_admin'),
-    window.sb.from('poll_votes').select('poll_id, user_id, vote'),
+    window.sb.from('poll_votes').select('poll_id, user_id, vote, note'),
+    window.sb.from('poll_guests').select('id, poll_id, name, vote, note'),
   ]);
+  // Fall back gracefully if the notes/guests migration hasn't been run yet
+  let votes = votesRes.data;
+  if (votesRes.error) {
+    console.warn('poll_votes.note unavailable:', votesRes.error.message);
+    votes = (await window.sb.from('poll_votes').select('poll_id, user_id, vote')).data;
+  }
+  const guests = guestsRes.error ? [] : (guestsRes.data || []);
+  if (guestsRes.error) console.warn('poll_guests unavailable:', guestsRes.error.message);
 
   if (error) {
     main.innerHTML = '<p>Could not load polls right now. Please try again later.</p>';
@@ -215,27 +269,39 @@ async function loadPolls() {
   }
 
   const myVoteMap = {};
-  (votes || []).filter(v => v.user_id === session.user.id).forEach(v => { myVoteMap[v.poll_id] = v.vote; });
+  const myNoteMap = {};
+  (votes || []).filter(v => v.user_id === session.user.id).forEach(v => { myVoteMap[v.poll_id] = v.vote; myNoteMap[v.poll_id] = v.note; });
 
   const profileMap = {};
   (profiles || []).forEach(p => { profileMap[p.id] = p; });
   isAdmin = !!(profileMap[session.user.id] && profileMap[session.user.id].is_admin);
 
-  const { upcoming, past } = splitUpcomingPast(polls);
+  const all = splitUpcomingPast(polls);
+  const matches = p => typeFilter === 'all' || pollTypeOf(p) === typeFilter;
+  const upcoming = all.upcoming.filter(matches);
+  const past = all.past.filter(matches);
+  const activeType = POLL_TYPES.find(t => t.key === typeFilter);
+  const noun = typeFilter === 'all' ? 'polls' : typeFilter === 'other' ? 'other polls' : activeType.label.toLowerCase();
 
   main.innerHTML = '';
 
-  const upcomingHeading = document.createElement('h2');
-  upcomingHeading.className = 'polls-section-heading';
-  upcomingHeading.textContent = 'Upcoming Practices';
-  main.appendChild(upcomingHeading);
+  // Filter links (replace the old "Upcoming Practices" heading)
+  const filterNav = document.createElement('nav');
+  filterNav.className = 'poll-filter';
+  filterNav.setAttribute('aria-label', 'Filter polls by type');
+  filterNav.innerHTML = POLL_TYPES.map(t => {
+    const n = t.key === 'all' ? all.upcoming.length : all.upcoming.filter(p => pollTypeOf(p) === t.key).length;
+    const on = t.key === typeFilter;
+    return `<a href="#${t.key}" class="poll-filter-link${on ? ' active' : ''}" data-type="${t.key}"${on ? ' aria-current="page"' : ''}>${t.label} <span class="poll-filter-count">${n}</span></a>`;
+  }).join('');
+  main.appendChild(filterNav);
 
   if (!upcoming.length) {
     const p = document.createElement('p');
-    p.textContent = 'No upcoming practices posted yet.';
+    p.textContent = `No upcoming ${noun} posted yet.`;
     main.appendChild(p);
   } else {
-    upcoming.forEach(poll => main.appendChild(renderPollCard(poll, myVoteMap, votes || [], profiles || [], profileMap)));
+    upcoming.forEach(poll => main.appendChild(renderPollCard(poll, myVoteMap, votes || [], profiles || [], profileMap, guests, myNoteMap)));
   }
 
   if (past.length) {
@@ -243,7 +309,7 @@ async function loadPolls() {
     pastToggle.type = 'button';
     pastToggle.className = 'link-toggle past-toggle';
     pastToggle.setAttribute('aria-expanded', String(showPast));
-    pastToggle.textContent = showPast ? 'Hide past practices' : `Show past practices (${past.length})`;
+    pastToggle.textContent = showPast ? `Hide past ${noun}` : `Show past ${noun} (${past.length})`;
     main.appendChild(pastToggle);
 
     const pastWrap = document.createElement('div');
@@ -252,16 +318,16 @@ async function loadPolls() {
 
     const pastHeading = document.createElement('h2');
     pastHeading.className = 'polls-section-heading polls-section-past';
-    pastHeading.textContent = 'Past Practices';
+    pastHeading.textContent = `Past ${typeFilter === 'all' ? 'Polls' : activeType.label}`;
     pastWrap.appendChild(pastHeading);
-    past.forEach(poll => pastWrap.appendChild(renderPollCard(poll, myVoteMap, votes || [], profiles || [], profileMap)));
+    past.forEach(poll => pastWrap.appendChild(renderPollCard(poll, myVoteMap, votes || [], profiles || [], profileMap, guests, myNoteMap)));
     main.appendChild(pastWrap);
 
     pastToggle.addEventListener('click', () => {
       showPast = !showPast;
       pastWrap.hidden = !showPast;
       pastToggle.setAttribute('aria-expanded', String(showPast));
-      pastToggle.textContent = showPast ? 'Hide past practices' : `Show past practices (${past.length})`;
+      pastToggle.textContent = showPast ? `Hide past ${noun}` : `Show past ${noun} (${past.length})`;
     });
   }
 
@@ -318,13 +384,47 @@ async function loadPolls() {
     });
   });
 
-  if (isAdmin) wireAdminEditing(main, profileMap);
+  main.querySelectorAll('.my-note-row').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = form.querySelector('.my-note-msg');
+      const note = form.querySelector('.my-note-input').value.trim().slice(0, 20) || null;
+      msg.textContent = 'Saving\u2026';
+      const { error } = await window.sb.from('poll_votes').update({ note })
+        .eq('poll_id', form.dataset.poll).eq('user_id', session.user.id);
+      if (error) { msg.textContent = 'Could not save: ' + error.message; console.error(error); return; }
+      loadPolls();
+    });
+  });
+
+  if (isAdmin) wireAdminEditing(main, profileMap, guests);
 }
 
 // ---------- Admin: change other players' votes ----------
 const VOTE_LABELS = { going: 'Going', maybe: 'Maybe', not_going: 'Not Going', none: 'Not Voted' };
 
-function wireAdminEditing(main, profileMap) {
+function wireAdminEditing(main, profileMap, guests) {
+  const guestMap = {};
+  (guests || []).forEach(g => { guestMap['g:' + g.id] = g; });
+
+  main.querySelectorAll('.guest-add').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = form.querySelector('.guest-msg');
+      const name = form.querySelector('.guest-name').value.trim();
+      if (!name) return;
+      msg.textContent = 'Adding\u2026';
+      const { error } = await window.sb.from('poll_guests').insert({
+        poll_id: form.dataset.poll,
+        name,
+        vote: form.querySelector('.guest-vote').value,
+        note: form.querySelector('.guest-note').value.trim().slice(0, 20) || null,
+      });
+      if (error) { msg.textContent = 'Could not add: ' + error.message; console.error(error); return; }
+      loadPolls();
+    });
+  });
+
   main.querySelectorAll('.admin-edit-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
       const pollId = btn.dataset.poll;
@@ -351,17 +451,21 @@ function wireAdminEditing(main, profileMap) {
 
     card.querySelectorAll('.admin-pick-box').forEach(box => {
       box.addEventListener('change', () => {
-        if (box.checked) sel.add(box.dataset.user); else sel.delete(box.dataset.user);
+        if (box.checked) sel.add(box.dataset.key); else sel.delete(box.dataset.key);
         refresh();
       });
     });
 
     changeBtn.addEventListener('click', () => {
-      const ids = [...sel];
-      if (!ids.length) return;
-      const names = ids.map(id => (profileMap[id] && profileMap[id].real_name) || 'Unknown');
+      const keys = [...sel];
+      if (!keys.length) return;
+      const userIds = keys.filter(k => !k.startsWith('g:'));
+      const guestIds = keys.filter(k => k.startsWith('g:')).map(k => k.slice(2));
+      const names = keys.map(k => k.startsWith('g:')
+        ? ((guestMap[k] && guestMap[k].name) || 'Guest') + ' (guest)'
+        : ((profileMap[k] && profileMap[k].real_name) || 'Unknown'));
       const title = card.querySelector('.poll-title').textContent;
-      openVoteDialog(pollId, title, ids, names);
+      openVoteDialog(pollId, title, userIds, guestIds, names);
     });
   });
 }
@@ -383,6 +487,7 @@ function getVoteDialog() {
         <button type="button" class="vote-btn vote-not-going" data-vote="not_going">${VOTE_LABELS.not_going}</button>
         <button type="button" class="vote-btn vote-no-vote" data-vote="none">${VOTE_LABELS.none}</button>
       </div>
+      <p class="dlg-guest-hint" hidden>Choosing &ldquo;Not Voted&rdquo; removes the selected guests from this poll.</p>
       <p class="dlg-msg"></p>
       <div class="dlg-foot"><button type="submit" class="link-button dlg-cancel">Cancel</button></div>
     </form>`;
@@ -392,13 +497,14 @@ function getVoteDialog() {
   return dlg;
 }
 
-function openVoteDialog(pollId, pollTitle, userIds, names) {
+function openVoteDialog(pollId, pollTitle, userIds, guestIds, names) {
   const dlg = getVoteDialog();
   dlg.querySelector('.dlg-poll').textContent = pollTitle;
   dlg.querySelector('.dlg-names').textContent =
     `${names.length} player${names.length === 1 ? '' : 's'}: ${names.join(', ')}`;
   const msg = dlg.querySelector('.dlg-msg');
   msg.textContent = '';
+  dlg.querySelector('.dlg-guest-hint').hidden = !guestIds.length;
 
   // Re-bind choice buttons for this poll/selection
   dlg.querySelectorAll('.dlg-choices .vote-btn').forEach(old => {
@@ -409,12 +515,20 @@ function openVoteDialog(pollId, pollTitle, userIds, names) {
       dlg.querySelectorAll('.dlg-choices .vote-btn').forEach(b => { b.disabled = true; });
       msg.textContent = 'Saving\u2026';
 
-      const { error } = vote === 'none'
-        ? await window.sb.from('poll_votes').delete().eq('poll_id', pollId).in('user_id', userIds)
-        : await window.sb.from('poll_votes').upsert(
-            userIds.map(uid => ({ poll_id: pollId, user_id: uid, vote })),
-            { onConflict: 'poll_id,user_id' }
-          );
+      let error = null;
+      if (userIds.length) {
+        ({ error } = vote === 'none'
+          ? await window.sb.from('poll_votes').delete().eq('poll_id', pollId).in('user_id', userIds)
+          : await window.sb.from('poll_votes').upsert(
+              userIds.map(uid => ({ poll_id: pollId, user_id: uid, vote })),
+              { onConflict: 'poll_id,user_id' }
+            ));
+      }
+      if (!error && guestIds.length) {
+        ({ error } = vote === 'none'
+          ? await window.sb.from('poll_guests').delete().in('id', guestIds)
+          : await window.sb.from('poll_guests').update({ vote }).in('id', guestIds));
+      }
 
       dlg.querySelectorAll('.dlg-choices .vote-btn').forEach(b => { b.disabled = false; });
       if (error) {
@@ -430,5 +544,11 @@ function openVoteDialog(pollId, pollTitle, userIds, names) {
 
   dlg.showModal();
 }
+
+// Filter links just change the hash; re-render when it changes (also handles back/forward)
+window.addEventListener('hashchange', () => {
+  const f = filterFromHash();
+  if (f !== typeFilter) { typeFilter = f; loadPolls(); }
+});
 
 document.addEventListener('DOMContentLoaded', loadPolls);

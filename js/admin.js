@@ -113,7 +113,10 @@ async function initAdmin() {
         <label>Title
           <input type="text" id="poll-title" required placeholder="e.g. Week of Sept 14 Practice">
         </label>
-        <label>Practice date
+        <label>Type
+          ${pollTypeSelectHtml('type-select', ' id="poll-type"', 'practice')}
+        </label>
+        <label>Date
           <input type="date" id="poll-date">
         </label>
         <label>Location
@@ -143,9 +146,10 @@ async function initAdmin() {
     const practice_date = document.getElementById('poll-date').value || null;
     const description = document.getElementById('poll-description').value.trim() || null;
     const location = resolveLocationValue(document.getElementById('create-poll-form'), 'new');
+    const poll_type = document.getElementById('poll-type').value;
 
     const { error } = await window.sb.from('polls').insert({
-      title, practice_date, description, location, created_by: session.user.id,
+      title, practice_date, description, location, poll_type, created_by: session.user.id,
     });
 
     if (error) {
@@ -160,10 +164,20 @@ async function initAdmin() {
   loadAdminPolls();
 }
 
-function renderAdminPollCard(poll, profiles, votes, profileMap) {
-  const pollVotes = votes.filter(v => v.poll_id === poll.id);
+const POLL_TYPE_OPTIONS = [['practice', 'Practice'], ['event', 'Event'], ['other', 'Other']];
+function pollTypeSelectHtml(cls, idAttr, current) {
+  current = current || 'practice';
+  const opts = POLL_TYPE_OPTIONS.map(([v, l]) =>
+    `<option value="${v}"${v === current ? ' selected' : ''}>${l}</option>`).join('');
+  return `<select class="${cls}"${idAttr}>${opts}</select>`;
+}
+
+function renderAdminPollCard(poll, profiles, votes, profileMap, guests) {
+  const pollGuests = (guests || []).filter(g => String(g.poll_id) === String(poll.id));
+  const pollVotes = votes.filter(v => v.poll_id === poll.id).concat(pollGuests);
   const votedIds = new Set(pollVotes.map(v => v.user_id));
   const notVoted = profiles.filter(p => !votedIds.has(p.id));
+  const guestNote = pollGuests.length ? ` &nbsp;&middot;&nbsp; <em>incl. ${pollGuests.length} guest${pollGuests.length === 1 ? '' : 's'}</em>` : '';
 
   const goingCount = pollVotes.filter(v => v.vote === 'going').length;
   const maybeCount = pollVotes.filter(v => v.vote === 'maybe').length;
@@ -176,12 +190,15 @@ function renderAdminPollCard(poll, profiles, votes, profileMap) {
   card.className = 'card admin-poll-card';
   card.innerHTML = `
     <h3>${escapeHtml(poll.title)}</h3>
-    <p class="poll-date">${formatPollDate(poll.practice_date)}</p>
-    ${poll.description ? `<p>${escapeHtml(poll.description)}</p>` : ''}
+    <p class="poll-date">${({ event: 'Event', other: 'Other' })[poll.poll_type] || 'Practice'} &middot; ${formatPollDate(poll.practice_date)}</p>
+    ${poll.description ? `<p class="poll-desc">${escapeHtml(poll.description)}</p>` : ''}
 
     <div class="admin-status-row">
       <label class="title-label">Title
         <input type="text" class="title-input" data-poll="${poll.id}" value="${escapeHtml(poll.title || '')}" required>
+      </label>
+      <label>Type
+        ${pollTypeSelectHtml('type-select', ` data-poll="${poll.id}"`, poll.poll_type)}
       </label>
       <label>Status
         <select class="status-select" data-poll="${poll.id}">
@@ -199,6 +216,9 @@ function renderAdminPollCard(poll, profiles, votes, profileMap) {
       <label>Booked info
         <input type="text" class="booked-info" data-poll="${poll.id}" value="${escapeHtml(poll.booked_info || '')}" placeholder="e.g. Court 2">
       </label>
+      <label class="title-label">Description
+        <textarea class="desc-input" data-poll="${poll.id}" rows="4" placeholder="Anything players should know">${escapeHtml(poll.description || '')}</textarea>
+      </label>
       <button type="button" class="btn btn-small save-status" data-poll="${poll.id}">Save</button>
       <button type="button" class="link-button delete-poll" data-poll="${poll.id}"
         data-title="${escapeHtml(poll.title || '')}" data-votes="${pollVotes.length}">Delete Poll</button>
@@ -209,7 +229,7 @@ function renderAdminPollCard(poll, profiles, votes, profileMap) {
       <p><strong>Going:</strong> ${goingCount} &nbsp;&middot;&nbsp;
          <strong>Maybe:</strong> ${maybeCount} &nbsp;&middot;&nbsp;
          <strong>Not going:</strong> ${notGoingCount} &nbsp;&middot;&nbsp;
-         <strong>Haven't voted:</strong> ${notVotedCount}</p>
+         <strong>Haven't voted:</strong> ${notVotedCount}${guestNote}</p>
     </div>
   `;
   wireLocationToggle(card);
@@ -220,11 +240,13 @@ async function loadAdminPolls() {
   const list = document.getElementById('admin-polls-list');
   if (!list) return;
 
-  const [{ data: polls, error: pollsError }, { data: profiles }, { data: votes }] = await Promise.all([
+  const [{ data: polls, error: pollsError }, { data: profiles }, { data: votes }, guestsRes] = await Promise.all([
     window.sb.from('polls').select('*'),
     window.sb.from('profiles').select('id, real_name'),
     window.sb.from('poll_votes').select('poll_id, user_id, vote'),
+    window.sb.from('poll_guests').select('id, poll_id, vote'),
   ]);
+  const guests = guestsRes.error ? [] : (guestsRes.data || []);
 
   if (pollsError) {
     list.innerHTML = '<p>Could not load polls.</p>';
@@ -246,7 +268,7 @@ async function loadAdminPolls() {
 
   const upcomingHeading = document.createElement('h3');
   upcomingHeading.className = 'polls-section-heading';
-  upcomingHeading.textContent = 'Upcoming Practices';
+  upcomingHeading.textContent = 'Upcoming Polls';
   list.appendChild(upcomingHeading);
 
   if (!upcoming.length) {
@@ -254,15 +276,15 @@ async function loadAdminPolls() {
     p.textContent = 'No upcoming polls.';
     list.appendChild(p);
   } else {
-    upcoming.forEach(poll => list.appendChild(renderAdminPollCard(poll, profiles || [], votes || [], profileMap)));
+    upcoming.forEach(poll => list.appendChild(renderAdminPollCard(poll, profiles || [], votes || [], profileMap, guests)));
   }
 
   if (past.length) {
     const pastHeading = document.createElement('h3');
     pastHeading.className = 'polls-section-heading polls-section-past';
-    pastHeading.textContent = 'Past Practices';
+    pastHeading.textContent = 'Past Polls';
     list.appendChild(pastHeading);
-    past.forEach(poll => list.appendChild(renderAdminPollCard(poll, profiles || [], votes || [], profileMap)));
+    past.forEach(poll => list.appendChild(renderAdminPollCard(poll, profiles || [], votes || [], profileMap, guests)));
   }
 
   list.querySelectorAll('.save-status').forEach(btn => {
@@ -270,6 +292,8 @@ async function loadAdminPolls() {
       const pollId = btn.dataset.poll;
       const title = list.querySelector(`.title-input[data-poll="${pollId}"]`).value.trim();
       const status = list.querySelector(`.status-select[data-poll="${pollId}"]`).value;
+      const description = list.querySelector(`.desc-input[data-poll="${pollId}"]`).value.trim() || null;
+      const pollType = list.querySelector(`.type-select[data-poll="${pollId}"]`).value;
       const bookedInfo = list.querySelector(`.booked-info[data-poll="${pollId}"]`).value.trim() || null;
       const location = resolveLocationValue(list, pollId);
       const timeVal = list.querySelector(`.time-input[data-poll="${pollId}"]`).value || null;
@@ -284,6 +308,8 @@ async function loadAdminPolls() {
       const { error } = await window.sb.from('polls').update({
         title: title,
         status: status,
+        poll_type: pollType,
+        description: description,
         booked_info: bookedInfo,
         location: location,
         practice_time: timeVal,

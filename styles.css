@@ -989,3 +989,109 @@ main.polls-main{ padding-top:1.6rem; padding-bottom:3rem; }
 .admin-vote-dialog .dlg-choices .vote-no-vote:hover{ background:var(--ink-soft); border-color:var(--ink-soft); color:#fff; }
 .admin-vote-dialog .dlg-msg{ min-height:1.2em; margin:0.6rem 0 0; font-size:0.88rem; color:var(--red); }
 .admin-vote-dialog .dlg-foot{ text-align:right; }
+
+/* ---------- Poll type filter & badges ---------- */
+
+.poll-filter{
+  display:flex;
+  flex-wrap:wrap;
+  gap:0.5rem;
+  margin:0 0 1.2rem;
+  padding-bottom:0.8rem;
+  border-bottom:2px solid var(--line);
+}
+.poll-filter-link{
+  font-family:'Source Sans 3', sans-serif;
+  font-weight:600;
+  font-size:0.95rem;
+  padding:0.4rem 0.9rem;
+  border-radius:999px;
+  border:1.5px solid var(--line);
+  background:#fff;
+  color:var(--ink-soft);
+  text-decoration:none;
+}
+.poll-filter-link:hover{ border-color:var(--maroon); color:var(--maroon); }
+.poll-filter-link.active{ background:var(--maroon); border-color:var(--maroon); color:#fff; }
+.poll-filter-count{
+  display:inline-block;
+  min-width:1.4em;
+  margin-left:0.3rem;
+  padding:0 0.35rem;
+  border-radius:999px;
+  background:rgba(58,22,32,0.08);
+  font-size:0.82rem;
+  text-align:center;
+}
+.poll-filter-link.active .poll-filter-count{ background:rgba(255,255,255,0.25); }
+
+.poll-type-badge{
+  display:inline-block;
+  vertical-align:middle;
+  font-family:'Source Sans 3', sans-serif;
+  font-size:0.72rem;
+  font-weight:700;
+  padding:0.15rem 0.55rem;
+  border-radius:4px;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  position:relative;
+  top:-0.1em;
+}
+.poll-type-badge.type-practice{ background:rgba(92,36,48,0.12); color:var(--maroon); }
+.poll-type-badge.type-event{ background:rgba(46,125,79,0.14); color:#2E7D4F; }
+.poll-type-badge.type-other{ background:rgba(90,74,78,0.14); color:var(--ink-soft); }
+
+/* Keep line breaks typed into poll descriptions */
+.poll-desc{ white-space:pre-line; overflow-wrap:anywhere; }
+.admin-status-row .desc-input{ width:100%; box-sizing:border-box; font-family:'Source Sans 3', sans-serif; font-weight:400; font-size:0.95rem; padding:0.45rem 0.6rem; border:1px solid var(--line); border-radius:4px; resize:vertical; }
+
+/* ---------- Vote notes & guests ---------- */
+
+.vote-note{
+  display:inline-block;
+  margin-left:0.25rem;
+  padding:0 0.4rem;
+  border-radius:3px;
+  background:rgba(199,137,28,0.14);
+  color:#7A5410;
+  font-size:0.8rem;
+  font-style:italic;
+}
+.guest-tag{
+  display:inline-block;
+  margin-left:0.2rem;
+  padding:0 0.35rem;
+  border-radius:3px;
+  border:1px solid var(--line);
+  color:var(--ink-soft);
+  font-size:0.72rem;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+}
+
+.my-note-row,
+.guest-add{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0.5rem;
+  margin-top:0.7rem;
+  font-size:0.9rem;
+}
+.my-note-row label{ display:flex; align-items:center; gap:0.4rem; font-weight:600; color:var(--ink-soft); }
+.my-note-row input,
+.guest-add input,
+.guest-add select{
+  font-family:'Source Sans 3', sans-serif;
+  font-size:0.9rem;
+  padding:0.4rem 0.55rem;
+  border:1px solid var(--line);
+  border-radius:4px;
+}
+.my-note-input{ width:11rem; }
+.guest-add{ padding:0.7rem; background:var(--paper); border-radius:4px; }
+.guest-add .guest-name{ flex:1 1 10rem; }
+.guest-add .guest-note{ width:9rem; }
+.my-note-msg, .guest-msg{ font-size:0.85rem; color:var(--ink-soft); }
+.dlg-guest-hint{ font-size:0.85rem; color:var(--ink-soft); }
