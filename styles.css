@@ -1095,3 +1095,29 @@ main.polls-main{ padding-top:1.6rem; padding-bottom:3rem; }
 .guest-add .guest-note{ width:9rem; }
 .my-note-msg, .guest-msg{ font-size:0.85rem; color:var(--ink-soft); }
 .dlg-guest-hint{ font-size:0.85rem; color:var(--ink-soft); }
+
+/* Filter: always one row, equal-width segments */
+.poll-filter{ flex-wrap:nowrap; gap:0.35rem; }
+.poll-filter-link{ flex:1 1 0; text-align:center; white-space:nowrap; padding:0.4rem 0.5rem; }
+@media (max-width:400px){ .poll-filter-link{ font-size:0.88rem; padding:0.35rem 0.25rem; } }
+
+/* Note box (opened from the "Add note" link) */
+.my-note-row{ margin-top:0.5rem; flex-wrap:nowrap; }
+.my-note-row .my-note-input{ flex:1 1 auto; min-width:0; width:auto; max-width:14rem; }
+.my-note-row[hidden]{ display:none; }
+
+/* Phones: date · location · title on ONE line, status pill on the same row */
+@media (max-width:600px){
+  .poll-head{ flex-wrap:nowrap; gap:0.5rem; }
+  .poll-head h2.poll-heading{
+    display:block; flex:1 1 auto; min-width:0;
+    font-size:0.95rem; line-height:1.3;
+  }
+  .status-yet{ display:none; }
+  .poll-head .poll-when,
+  .poll-head .poll-title{ font-size:inherit; line-height:inherit; }
+  .poll-head .poll-location{ display:inline; }
+  .poll-head .poll-sep{ display:inline; }
+  .poll-year{ display:none; }
+  .poll-head .poll-status{ flex:none; font-size:0.64rem; padding:0.2rem 0.45rem; letter-spacing:0.02em; }
+}

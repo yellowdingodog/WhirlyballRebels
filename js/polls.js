@@ -10,6 +10,14 @@ function formatPollDate(d) {
   return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// Heading date; the year is wrapped so phones can hide it to keep the heading on one line
+function formatHeadingDate(d) {
+  if (!d) return 'Date TBD';
+  const date = new Date(d + 'T00:00:00');
+  const md = date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return `${md}<span class="poll-year">, ${date.getFullYear()}</span>`;
+}
+
 function formatTime(t) {
   if (!t) return '';
   const [h, m] = t.split(':');
@@ -87,6 +95,7 @@ function personFor(id, profileMap) {
 
 // UI state that survives re-renders (loadPolls re-runs after every vote)
 const openResults = new Set();
+const openNotes = new Set();   // poll ids with the "Add note" box expanded
 let showPast = false;
 
 // Poll type filter: all | practice | event | other  (kept in the URL hash, e.g. polls.html#event)
@@ -152,7 +161,7 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap, guests, my
   } else if (poll.status === 'cancelled') {
     statusHtml = `<span class="poll-status cancelled">Cancelled</span>`;
   } else {
-    statusHtml = `<span class="poll-status open">Not Yet Booked</span>`;
+    statusHtml = `<span class="poll-status open">Not <span class="status-yet">Yet </span>Booked</span>`;
   }
 
   const current = myVoteMap[poll.id];
@@ -171,6 +180,7 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap, guests, my
   const maybeList = listFor('maybe');
   const notGoingList = listFor('not_going');
   const myNote = (myNoteMap || {})[poll.id] || '';
+  const noteOpen = openNotes.has(String(poll.id));
   const notVotedList = sortPeople(notVoted);
 
   const editMode = isAdmin && adminEditPolls.has(String(poll.id));
@@ -182,7 +192,7 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap, guests, my
   card.dataset.poll = poll.id;
   card.innerHTML = `
     <div class="poll-head">
-      <h2 class="poll-heading"><span class="poll-type-badge type-${pollTypeOf(poll)}">${TYPE_BADGE[pollTypeOf(poll)]}</span> <span class="poll-when">${formatPollDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span><span class="poll-sep"> &middot;</span></span> <span class="poll-title">${escapeHtml(poll.title)}</span></h2>
+      <h2 class="poll-heading"><span class="poll-when">${formatHeadingDate(poll.practice_date)} &middot; <span class="poll-location">${escapeHtml(locationLabel)}</span><span class="poll-sep"> &middot;</span></span> <span class="poll-title">${escapeHtml(poll.title)}</span></h2>
       ${statusHtml}
     </div>
     ${poll.description ? `<p class="poll-desc">${escapeHtml(poll.description)}</p>` : ''}
@@ -192,14 +202,9 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap, guests, my
       <button type="button" class="vote-btn vote-not-going ${current === 'not_going' ? 'selected' : ''}" data-vote="not_going">Not Going <span class="vote-count">${notGoingList.length}</span></button>
       <button type="button" class="vote-btn vote-no-vote ${!current ? 'selected' : ''}" data-vote="none">Not Voted <span class="vote-count">${notVotedList.length}</span></button>
     </div>
-    ${current ? `
-    <form class="my-note-row" data-poll="${poll.id}">
-      <label>Your note <input type="text" class="my-note-input" maxlength="20" value="${escapeHtml(myNote)}" placeholder="e.g. be there at 12"></label>
-      <button type="submit" class="btn btn-small">Save note</button>
-      <span class="my-note-msg"></span>
-    </form>` : ''}
     <div class="poll-actions">
       ${editMode ? '' : `<button type="button" class="link-toggle results-toggle" aria-expanded="${isOpen}" data-poll="${poll.id}">${isOpen ? 'Hide results' : 'View results'}</button>`}
+      ${current ? `<button type="button" class="link-toggle note-toggle" aria-expanded="${noteOpen}" data-poll="${poll.id}">${myNote ? 'Edit note' : 'Add note'}</button>` : ''}
       ${isAdmin ? `<button type="button" class="admin-edit-toggle${editMode ? ' active' : ''}" data-poll="${poll.id}">${editMode ? 'Done editing' : 'Edit votes'}</button>` : ''}
     </div>
     ${editMode ? `
@@ -219,6 +224,12 @@ function renderPollCard(poll, myVoteMap, votes, profiles, profileMap, guests, my
       <input type="text" class="guest-note" maxlength="20" placeholder="Note (optional)">
       <button type="submit" class="btn btn-small">Add guest</button>
       <span class="guest-msg"></span>
+    </form>` : ''}
+    ${current ? `
+    <form class="my-note-row" data-poll="${poll.id}"${noteOpen ? '' : ' hidden'}>
+      <input type="text" class="my-note-input" maxlength="20" value="${escapeHtml(myNote)}" placeholder="e.g. be there at 12" aria-label="Your note">
+      <button type="submit" class="btn btn-small">Save</button>
+      <span class="my-note-msg"></span>
     </form>` : ''}
     <div class="vote-results"${isOpen ? '' : ' hidden'}>
       ${renderNameColumn('Going', 'col-going', goingList, poll.id, editMode)}
@@ -288,9 +299,8 @@ async function loadPolls() {
   filterNav.className = 'poll-filter';
   filterNav.setAttribute('aria-label', 'Filter polls by type');
   filterNav.innerHTML = POLL_TYPES.map(t => {
-    const n = t.key === 'all' ? all.upcoming.length : all.upcoming.filter(p => pollTypeOf(p) === t.key).length;
     const on = t.key === typeFilter;
-    return `<a href="#${t.key}" class="poll-filter-link${on ? ' active' : ''}" data-type="${t.key}"${on ? ' aria-current="page"' : ''}>${t.label} <span class="poll-filter-count">${n}</span></a>`;
+    return `<a href="#${t.key}" class="poll-filter-link${on ? ' active' : ''}" data-type="${t.key}"${on ? ' aria-current="page"' : ''}>${t.label}</a>`;
   }).join('');
   main.appendChild(filterNav);
 
@@ -382,6 +392,17 @@ async function loadPolls() {
     });
   });
 
+  main.querySelectorAll('.note-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.poll;
+      const form = btn.closest('.poll-card').querySelector('.my-note-row');
+      const open = form.hidden;
+      form.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      if (open) { openNotes.add(id); form.querySelector('.my-note-input').focus(); } else openNotes.delete(id);
+    });
+  });
+
   main.querySelectorAll('.my-note-row').forEach(form => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -391,6 +412,7 @@ async function loadPolls() {
       const { error } = await window.sb.from('poll_votes').update({ note })
         .eq('poll_id', form.dataset.poll).eq('user_id', session.user.id);
       if (error) { msg.textContent = 'Could not save: ' + error.message; console.error(error); return; }
+      openNotes.delete(String(form.dataset.poll));
       loadPolls();
     });
   });
